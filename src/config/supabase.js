@@ -5,12 +5,22 @@
 import { createClient } from '@supabase/supabase-js'
 
 // URL del progetto Supabase
-// Sostituisci YOUR_PROJECT_ID con l'ID del tuo progetto Supabase
+// IMPORTANTE: Configura la variabile d'ambiente VITE_SUPABASE_URL in Vercel/Netlify
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://YOUR_PROJECT_ID.supabase.co'
 
-// Anon/Public Key - Usa la variabile d'ambiente VITE_SUPABASE_ANON_KEY oppure inserisci direttamente la key qui
+// Anon/Public Key - Usa la variabile d'ambiente VITE_SUPABASE_ANON_KEY
 // IMPORTANTE: Per l'app React usa sempre la anon key, NON la connection string PostgreSQL!
+// IMPORTANTE: Configura la variabile d'ambiente VITE_SUPABASE_ANON_KEY in Vercel/Netlify
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'YOUR_ANON_KEY_HERE'
+
+// Validazione: mostra errore chiaro se le variabili non sono configurate
+if (supabaseUrl.includes('YOUR_PROJECT_ID') || supabaseAnonKey.includes('YOUR_ANON_KEY')) {
+  console.error('❌ ERRORE: Variabili d\'ambiente Supabase non configurate!')
+  console.error('📝 Configura in Vercel/Netlify:')
+  console.error('   1. VITE_SUPABASE_URL = https://YOUR_PROJECT_ID.supabase.co')
+  console.error('   2. VITE_SUPABASE_ANON_KEY = la tua anon key')
+  console.error('📖 Vedi DEPLOY.md per le istruzioni complete')
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

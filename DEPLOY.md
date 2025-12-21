@@ -46,11 +46,19 @@ git push -u origin main
 
 5. **Configura le Variabili d'Ambiente:**
    - Clicca su "Environment Variables"
-   - Aggiungi:
+   - Aggiungi **DUE** variabili:
+     
+     **Variabile 1:**
+     - **Name**: `VITE_SUPABASE_URL`
+     - **Value**: `https://YOUR_PROJECT_ID.supabase.co` (sostituisci `YOUR_PROJECT_ID` con l'ID del tuo progetto)
+     - Seleziona tutti gli ambienti (Production, Preview, Development)
+     - Clicca "Add"
+     
+     **Variabile 2:**
      - **Name**: `VITE_SUPABASE_ANON_KEY`
      - **Value**: La tua anon key di Supabase
      - Seleziona tutti gli ambienti (Production, Preview, Development)
-   - Clicca "Add"
+     - Clicca "Add"
 
 6. **Deploy!**
    - Clicca "Deploy"
@@ -100,17 +108,26 @@ Netlify è un'altra ottima opzione gratuita.
 
 ## ⚙️ Configurazione Variabili d'Ambiente
 
-**IMPORTANTE:** Dopo il deploy, assicurati di configurare la variabile d'ambiente:
+**IMPORTANTE:** Dopo il deploy, assicurati di configurare **ENTRAMBE** le variabili d'ambiente:
 
-- **Nome**: `VITE_SUPABASE_ANON_KEY`
-- **Valore**: La tua anon key di Supabase
-   - La trovi su: https://supabase.com/dashboard/project/YOUR_PROJECT_ID/settings/api
+### Variabile 1: `VITE_SUPABASE_URL`
+- **Valore**: `https://YOUR_PROJECT_ID.supabase.co`
+- **Dove trovarlo**: 
+  1. Vai su https://supabase.com/dashboard/project/YOUR_PROJECT_ID/settings/api
+  2. L'URL è mostrato nella sezione "Project URL" o "API URL"
+  3. Oppure costruiscilo sostituendo `YOUR_PROJECT_ID` con l'ID del tuo progetto (es: `https://eifsqttgepbrcbdijrhx.supabase.co`)
 
-### Come trovare la tua Anon Key:
+### Variabile 2: `VITE_SUPABASE_ANON_KEY`
+- **Valore**: La tua anon/public key di Supabase
+- **Dove trovarlo**: 
+  1. Vai su: https://supabase.com/dashboard/project/YOUR_PROJECT_ID/settings/api
+  2. Copia la **anon/public key** (è una stringa lunga che inizia con `eyJ...`)
+  3. Incollala nella variabile d'ambiente della piattaforma di hosting
 
-1. Vai su: https://supabase.com/dashboard/project/YOUR_PROJECT_ID/settings/api
-2. Copia la **anon/public key**
-3. Incollala nella variabile d'ambiente della piattaforma di hosting
+### ⚠️ Attenzione
+- **ENTRAMBE** le variabili sono obbligatorie
+- Se manca anche solo una, l'app non funzionerà
+- Assicurati di selezionare tutti gli ambienti (Production, Preview, Development) quando le aggiungi
 
 ---
 
