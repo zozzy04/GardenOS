@@ -1,0 +1,44 @@
+.dashboard {
+  max-width: 100%;
+}
+
+.dashboard-header {
+  margin-bottom: 24px;
+}
+
+.dashboard-header h1 {
+  font-size: 30px;
+  margin: 0 0 8px 0;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+  font-family: var(--font-outfit);
+  line-height: 38px;
+}
+
+.header-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.last-update {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-family: var(--font-outfit);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+  margin-right: 8px;
+}
