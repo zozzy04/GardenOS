@@ -14,12 +14,24 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://YOUR_PROJECT_I
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'YOUR_ANON_KEY_HERE'
 
 // Validazione: mostra errore chiaro se le variabili non sono configurate
-if (supabaseUrl.includes('YOUR_PROJECT_ID') || supabaseAnonKey.includes('YOUR_ANON_KEY')) {
-  console.error('❌ ERRORE: Variabili d\'ambiente Supabase non configurate!')
+const isConfigValid = !supabaseUrl.includes('YOUR_PROJECT_ID') && 
+                      !supabaseAnonKey.includes('YOUR_ANON_KEY') &&
+                      supabaseUrl.startsWith('https://') &&
+                      supabaseAnonKey.length > 20
+
+if (!isConfigValid) {
+  console.error('❌ ERRORE CRITICO: Variabili d\'ambiente Supabase non configurate!')
   console.error('📝 Configura in Vercel/Netlify:')
   console.error('   1. VITE_SUPABASE_URL = https://YOUR_PROJECT_ID.supabase.co')
   console.error('   2. VITE_SUPABASE_ANON_KEY = la tua anon key')
-  console.error('📖 Vedi DEPLOY.md per le istruzioni complete')
+  console.error('📖 Vedi VERCEL_ENV_SETUP.md per le istruzioni complete')
+  
+  // Esponi una funzione per verificare la configurazione
+  window.__SUPABASE_CONFIG_ERROR__ = {
+    supabaseUrl: supabaseUrl,
+    supabaseAnonKey: supabaseAnonKey.substring(0, 20) + '...',
+    message: 'Variabili d\'ambiente Supabase non configurate correttamente'
+  }
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
