@@ -7,6 +7,7 @@ import History from './components/History'
 import Calendar from './components/Calendar'
 import WeatherStats from './components/WeatherStats'
 import Invoice from './components/Invoice'
+import ConfigError from './components/ConfigError'
 import { useAuth } from './hooks/useSupabase'
 import './App.css'
 
@@ -78,14 +79,17 @@ function App() {
   }
 
   return (
-    <Layout 
-      currentPage={currentPage} 
-      onPageChange={setCurrentPage}
-      user={userData}
-      onLogout={handleLogout}
-    >
-      {renderPage()}
-    </Layout>
+    <>
+      <ConfigError />
+      <Layout 
+        currentPage={currentPage} 
+        onPageChange={setCurrentPage}
+        user={userData}
+        onLogout={handleLogout}
+      >
+        {renderPage()}
+      </Layout>
+    </>
   )
 }
 
