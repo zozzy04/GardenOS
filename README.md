@@ -66,13 +66,27 @@ Sistema operativo per la gestione completa del tuo giardino. Dashboard moderna e
    ```
 
 3. **Configura le variabili d'ambiente**
-   ```bash
-   cp .env.example .env
+   
+   Crea un file `.env` nella root del progetto con:
+   ```env
+   # Supabase Configuration
+   VITE_SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
+   VITE_SUPABASE_ANON_KEY=YOUR_ANON_KEY_HERE
+   
+   # Admin Access Control (Opzionale - per limitare l'accesso solo a te)
+   VITE_ADMIN_EMAIL=your-email@example.com
+   VITE_ADMIN_PASSWORD=your-password-here
    ```
    
-   Poi modifica `.env` e inserisci le tue credenziali Supabase:
+   **Variabili obbligatorie:**
    - `VITE_SUPABASE_URL`: URL del tuo progetto Supabase
    - `VITE_SUPABASE_ANON_KEY`: Anon key del tuo progetto Supabase
+   
+   **Variabili opzionali (per sicurezza aggiuntiva):**
+   - `VITE_ADMIN_EMAIL`: Se configurata, solo questa email potrà accedere
+   - `VITE_ADMIN_PASSWORD`: Se configurata, solo questa password sarà accettata
+   
+   ⚠️ **Nota sulla sicurezza**: Le variabili `VITE_*` sono visibili nel codice frontend. La vera sicurezza viene da Supabase. Questi controlli sono solo aggiuntivi.
 
 4. **Configura Supabase**
    - Crea un progetto su [Supabase](https://supabase.com)
