@@ -34,6 +34,7 @@ Netlify dovrebbe rilevare automaticamente Vite, ma verifica queste impostazioni:
 - **Build command**: `npm run build`
 - **Publish directory**: `dist`
 - **Base directory**: (lascia vuoto)
+- **Node version**: Netlify userà automaticamente Node 20.19.0 (specificato in `.nvmrc` e `netlify.toml`)
 
 ### 4. ⚠️ IMPORTANTE: Configura le Variabili d'Ambiente
 
@@ -82,6 +83,7 @@ Ogni volta che fai un push su GitHub, Netlify farà automaticamente un nuovo dep
 - Verifica che le variabili d'ambiente siano configurate
 - Controlla i **Deploy logs** nella dashboard Netlify
 - Assicurati che il build locale funzioni: `npm run build`
+- Se vedi errori su `node:util`, verifica che Netlify stia usando Node 20.19+ (dovrebbe essere automatico grazie a `.nvmrc`)
 
 ### L'app non si carica?
 - Verifica che entrambe le variabili d'ambiente siano configurate
