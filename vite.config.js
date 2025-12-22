@@ -6,5 +6,15 @@ export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
     include: ['jspdf']
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        // Assicura che i file JS abbiano l'estensione .js
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]'
+      }
+    }
   }
 })
