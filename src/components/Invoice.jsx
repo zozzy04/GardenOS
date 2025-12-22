@@ -300,7 +300,8 @@ const Invoice = () => {
         yPosition += 8
 
         doc.setFont('helvetica', 'normal')
-        filteredSpese.forEach((spesa, index) => {
+        for (let index = 0; index < filteredSpese.length; index++) {
+          const spesa = filteredSpese[index]
           // Controlla se serve una nuova pagina
           if (yPosition > pageHeight - 80) {
             doc.addPage()
@@ -404,7 +405,7 @@ const Invoice = () => {
           }
 
           yPosition = currentY + 6
-        })
+        }
 
         yPosition += 10
       }
