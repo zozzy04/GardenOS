@@ -212,3 +212,128 @@ export const locationsService = {
   }
 }
 
+// Spese Condominiali
+export const speseService = {
+  // Ottieni tutte le spese dell'utente corrente
+  async getAll(userId) {
+    const { data, error } = await supabase
+      .from('spese_condominiali')
+      .select('*')
+      .eq('user_id', userId)
+      .order('data_acquisto', { ascending: false })
+    
+    if (error) throw error
+    return data
+  },
+
+  // Ottieni una spesa specifica
+  async getById(id, userId) {
+    const { data, error } = await supabase
+      .from('spese_condominiali')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  // Crea una nuova spesa
+  async create(spesa, userId) {
+    const { data, error } = await supabase
+      .from('spese_condominiali')
+      .insert({
+        user_id: userId,
+        oggetto: spesa.oggetto,
+        data_acquisto: spesa.data_acquisto,
+        prezzo: parseFloat(spesa.prezzo),
+        scontrino_url: spesa.scontrino_url || null
+      })
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  // Aggiorna una spesa
+  async update(id, spesa, userId) {
+    const { data, error } = await supabase
+      .from('spese_condominiali')
+      .update({
+        oggetto: spesa.oggetto,
+        data_acquisto: spesa.data_acquisto,
+        prezzo: parseFloat(spesa.prezzo),
+        scontrino_url: spesa.scontrino_url || null
+      })
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  // Elimina una spesa
+  async delete(id, userId) {
+    const { error } = await supabase
+      .from('spese_condominiali')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId)
+    
+    if (error) throw error
+  },
+
+  // Filtra spese per data
+  async getByDateRange(userId, startDate, endDate) {
+    const { data, error } = await supabase
+      .from('spese_condominiali')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('data_acquisto', startDate)
+      .lte('data_acquisto', endDate)
+      .order('data_acquisto', { ascending: false })
+    
+    if (error) throw error
+    return data
+  },
+
+  // Upload file scontrino
+  async uploadScontrino(userId, file) {
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${userId}/${Date.now()}.${fileExt}`
+    
+    const { data, error } = await supabase.storage
+      .from('scontrini')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
+    
+    if (error) throw error
+    
+    // Ottieni l'URL pubblico
+    const { data: urlData } = supabase.storage
+      .from('scontrini')
+      .getPublicUrl(fileName)
+    
+    return urlData.publicUrl
+  },
+
+  // Elimina file scontrino
+  async deleteScontrino(fileUrl) {
+    // Estrai il path dal URL
+    const urlParts = fileUrl.split('/')
+    const fileName = urlParts.slice(-2).join('/') // userId/filename
+    
+    const { error } = await supabase.storage
+      .from('scontrini')
+      .remove([fileName])
+    
+    if (error) throw error
+  }
+}
+

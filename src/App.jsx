@@ -7,6 +7,7 @@ import History from './components/History'
 import Calendar from './components/Calendar'
 import WeatherStats from './components/WeatherStats'
 import Invoice from './components/Invoice'
+import SpeseCondominiali from './components/SpeseCondominiali'
 import ConfigError from './components/ConfigError'
 import { useAuth } from './hooks/useSupabase'
 import './App.css'
@@ -57,6 +58,8 @@ function App() {
         return <History />
       case 'calendario':
         return <Calendar />
+      case 'spese':
+        return <SpeseCondominiali />
       case 'fattura':
         return <Invoice />
       case 'meteo':

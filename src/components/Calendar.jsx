@@ -1,20 +1,20 @@
 import { useState, useEffect } from 'react'
 import Icon from './Icons'
+import { useAuth } from '../hooks/useSupabase'
+import { useLavori } from '../hooks/useSupabase'
 import './Calendar.css'
 
 const Calendar = () => {
-  const [works, setWorks] = useState([])
+  const { user } = useAuth()
+  const { lavori } = useLavori(user?.id)
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [predictions, setPredictions] = useState([])
 
   useEffect(() => {
-    const savedWorks = localStorage.getItem('gardenos-lavori')
-    if (savedWorks) {
-      const loadedWorks = JSON.parse(savedWorks)
-      setWorks(loadedWorks)
-      calculatePredictions(loadedWorks)
+    if (lavori) {
+      calculatePredictions(lavori)
     }
-  }, [])
+  }, [lavori])
 
   // Calcola le previsioni future basate sui lavori precedenti
   const calculatePredictions = (worksData) => {
@@ -29,6 +29,7 @@ const Calendar = () => {
 
     // Raggruppa i lavori per tipo
     const worksByType = {}
+    if (!worksData) return
     worksData.forEach(work => {
       const tipi = Array.isArray(work.tipi) ? work.tipi : (work.tipo ? [work.tipo] : [])
       tipi.forEach(tipo => {
@@ -121,9 +122,9 @@ const Calendar = () => {
 
   // Verifica se una data ha lavori
   const getWorksForDate = (date) => {
-    if (!date) return []
+    if (!date || !lavori) return []
     const dateStr = date.toLocaleDateString('it-IT')
-    return works.filter(work => work.data === dateStr)
+    return lavori.filter(work => work.data === dateStr)
   }
 
   // Verifica se una data ha previsioni
