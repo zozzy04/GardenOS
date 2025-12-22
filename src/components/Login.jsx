@@ -12,8 +12,9 @@ const Login = () => {
   const [loading, setLoading] = useState(false)
   const { signIn } = useAuth()
 
-  // Email ammessa (opzionale): se la imposti, solo questa potrà accedere
+  // Email e password ammesse (opzionali): se le imposti, solo queste potranno accedere
   const allowedEmail = import.meta.env.VITE_ADMIN_EMAIL || null
+  const allowedPassword = import.meta.env.VITE_ADMIN_PASSWORD || null
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -30,6 +31,13 @@ const Login = () => {
       // Se è configurata una email ammessa, blocca tutte le altre
       if (allowedEmail && formData.email.trim().toLowerCase() !== allowedEmail.trim().toLowerCase()) {
         setError('Accesso non autorizzato per questa email')
+        setLoading(false)
+        return
+      }
+
+      // Se è configurata una password ammessa, blocca tutte le altre
+      if (allowedPassword && formData.password !== allowedPassword) {
+        setError('Password non corretta')
         setLoading(false)
         return
       }
