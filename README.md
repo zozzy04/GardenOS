@@ -106,26 +106,28 @@ I file saranno generati nella cartella `dist/`
 
 ## 🌐 Deploy e Accesso da Qualsiasi Dispositivo
 
-### Opzioni di Deploy
+### Opzioni di Deploy (Tutte Gratuite)
 
-1. **Vercel** (Consigliato - Gratuito)
-   ```bash
-   npm install -g vercel
-   vercel
-   ```
+1. **Netlify** ⭐ (Consigliato - Più Semplice)
+   - Vedi [NETLIFY_DEPLOY.md](./NETLIFY_DEPLOY.md) per la guida completa
+   - Setup in 5 minuti
+   - File di configurazione già incluso (`netlify.toml`)
 
-2. **Netlify**
-   - Collega il repository GitHub
-   - Build command: `npm run build`
-   - Publish directory: `dist`
+2. **Cloudflare Pages** ⭐ (Ottima Performance)
+   - Vedi [CLOUDFLARE_DEPLOY.md](./CLOUDFLARE_DEPLOY.md) per la guida completa
+   - CDN globale ultra-veloce
+   - Setup in 5 minuti
 
-3. **GitHub Pages**
-   - Aggiungi `base: '/gardenos'` in `vite.config.js`
-   - Usa il plugin `vite-plugin-gh-pages`
+3. **Vercel** (Alternativa)
+   - Vedi [DEPLOY.md](./DEPLOY.md) per la guida completa
+   - Molto simile a Netlify
 
-4. **Server Proprio**
-   - Carica la cartella `dist` su un server web
-   - Configura HTTPS per geolocalizzazione
+4. **Altre Opzioni**
+   - Vedi [DEPLOY_ALTERNATIVE.md](./DEPLOY_ALTERNATIVE.md) per un confronto completo
+
+**⚠️ IMPORTANTE:** Qualsiasi piattaforma tu scelga, devi configurare le variabili d'ambiente:
+- `VITE_SUPABASE_URL` = `https://eifsqttgepbrcbdijrhx.supabase.co`
+- `VITE_SUPABASE_ANON_KEY` = (la tua anon key da Supabase)
 
 ### Accesso Mobile
 
