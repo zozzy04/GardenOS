@@ -294,3 +294,184 @@ export const useLocation = (userId) => {
   }
 }
 
+// Hook per le spese condominiali
+export const useSpese = (userId) => {
+  const [spese, setSpese] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!userId) {
+      setLoading(false)
+      return
+    }
+
+    loadSpese()
+  }, [userId])
+
+  const loadSpese = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const { data, error: fetchError } = await supabase
+        .from('spese_condominiali')
+        .select('*')
+        .eq('user_id', userId)
+        .order('data_acquisto', { ascending: false })
+
+      if (fetchError) throw fetchError
+      
+      // Converti i dati dal formato DB al formato app
+      const formattedData = data.map(spesa => ({
+        id: spesa.id,
+        oggetto: spesa.oggetto,
+        data_acquisto: new Date(spesa.data_acquisto).toLocaleDateString('it-IT'),
+        prezzo: parseFloat(spesa.prezzo),
+        scontrino_url: spesa.scontrino_url || null
+      }))
+      
+      setSpese(formattedData)
+    } catch (err) {
+      console.error('Errore nel caricamento spese:', err)
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const createSpesa = async (spesaData) => {
+    try {
+      setError(null)
+      // Converti data da formato italiano a ISO
+      const dataParts = spesaData.data_acquisto.split('/')
+      const dataISO = `${dataParts[2]}-${dataParts[1]}-${dataParts[0]}`
+
+      const { data, error: insertError } = await supabase
+        .from('spese_condominiali')
+        .insert({
+          user_id: userId,
+          oggetto: spesaData.oggetto,
+          data_acquisto: dataISO,
+          prezzo: parseFloat(spesaData.prezzo),
+          scontrino_url: spesaData.scontrino_url || null
+        })
+        .select()
+        .single()
+
+      if (insertError) throw insertError
+      
+      await loadSpese() // Ricarica la lista
+      return { data, error: null }
+    } catch (err) {
+      console.error('Errore nella creazione spesa:', err)
+      setError(err.message)
+      return { data: null, error: err }
+    }
+  }
+
+  const updateSpesa = async (id, spesaData) => {
+    try {
+      setError(null)
+      // Converti data da formato italiano a ISO
+      const dataParts = spesaData.data_acquisto.split('/')
+      const dataISO = `${dataParts[2]}-${dataParts[1]}-${dataParts[0]}`
+
+      const { data, error: updateError } = await supabase
+        .from('spese_condominiali')
+        .update({
+          oggetto: spesaData.oggetto,
+          data_acquisto: dataISO,
+          prezzo: parseFloat(spesaData.prezzo),
+          scontrino_url: spesaData.scontrino_url || null
+        })
+        .eq('id', id)
+        .eq('user_id', userId)
+        .select()
+        .single()
+
+      if (updateError) throw updateError
+      
+      await loadSpese() // Ricarica la lista
+      return { data, error: null }
+    } catch (err) {
+      console.error('Errore nell\'aggiornamento spesa:', err)
+      setError(err.message)
+      return { data: null, error: err }
+    }
+  }
+
+  const deleteSpesa = async (id) => {
+    try {
+      setError(null)
+      // Prima elimina il file scontrino se presente
+      const spesa = spese.find(s => s.id === id)
+      if (spesa && spesa.scontrino_url) {
+        try {
+          const urlParts = spesa.scontrino_url.split('/')
+          const fileName = urlParts.slice(-2).join('/')
+          await supabase.storage
+            .from('scontrini')
+            .remove([fileName])
+        } catch (storageError) {
+          console.warn('Errore nell\'eliminazione file scontrino:', storageError)
+          // Continua comunque con l'eliminazione della spesa
+        }
+      }
+
+      const { error: deleteError } = await supabase
+        .from('spese_condominiali')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', userId)
+
+      if (deleteError) throw deleteError
+      
+      await loadSpese() // Ricarica la lista
+      return { error: null }
+    } catch (err) {
+      console.error('Errore nell\'eliminazione spesa:', err)
+      setError(err.message)
+      return { error: err }
+    }
+  }
+
+  const uploadScontrino = async (file) => {
+    try {
+      setError(null)
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${userId}/${Date.now()}.${fileExt}`
+      
+      const { data, error: uploadError } = await supabase.storage
+        .from('scontrini')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+      
+      if (uploadError) throw uploadError
+      
+      // Ottieni l'URL pubblico
+      const { data: urlData } = supabase.storage
+        .from('scontrini')
+        .getPublicUrl(fileName)
+      
+      return { url: urlData.publicUrl, error: null }
+    } catch (err) {
+      console.error('Errore nell\'upload scontrino:', err)
+      setError(err.message)
+      return { url: null, error: err }
+    }
+  }
+
+  return {
+    spese,
+    loading,
+    error,
+    createSpesa,
+    updateSpesa,
+    deleteSpesa,
+    uploadScontrino,
+    refresh: loadSpese
+  }
+}
+

@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
 import Icon from './Icons'
+import { useAuth } from '../hooks/useSupabase'
+import { useLavori } from '../hooks/useSupabase'
 import './Dashboard.css'
 
 const Dashboard = () => {
-  const [works, setWorks] = useState([])
+  const { user } = useAuth()
+  const { lavori, loading } = useLavori(user?.id)
   const [stats, setStats] = useState({
     totalWorks: 0,
     totalHours: 0,
@@ -14,13 +17,10 @@ const Dashboard = () => {
   })
 
   useEffect(() => {
-    const savedWorks = localStorage.getItem('gardenos-lavori')
-    if (savedWorks) {
-      const loadedWorks = JSON.parse(savedWorks)
-      setWorks(loadedWorks)
-      calculateStats(loadedWorks)
+    if (lavori) {
+      calculateStats(lavori)
     }
-  }, [])
+  }, [lavori])
 
   const calculateStats = (worksData) => {
     if (!worksData || worksData.length === 0) return

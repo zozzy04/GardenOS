@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import Icon from './Icons'
+import { useAuth } from '../hooks/useSupabase'
+import { useLavori } from '../hooks/useSupabase'
+import { useSpese } from '../hooks/useSupabase'
 import './Invoice.css'
 
 // Millesimi per le 4 famiglie
@@ -11,33 +14,29 @@ const MILLESIMI = {
 }
 
 const Invoice = () => {
-  const [works, setWorks] = useState([])
+  const { user } = useAuth()
+  const { lavori } = useLavori(user?.id)
+  const { spese } = useSpese(user?.id)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [filteredWorks, setFilteredWorks] = useState([])
+  const [filteredSpese, setFilteredSpese] = useState([])
   const [invoiceData, setInvoiceData] = useState(null)
 
   useEffect(() => {
-    const savedWorks = localStorage.getItem('gardenos-lavori')
-    if (savedWorks) {
-      setWorks(JSON.parse(savedWorks))
-    }
-  }, [])
-
-  useEffect(() => {
-    if (startDate && endDate) {
+    if (startDate && endDate && lavori && spese) {
       filterWorksByDate()
     }
-  }, [startDate, endDate, works])
+  }, [startDate, endDate, lavori, spese])
 
   const filterWorksByDate = () => {
-    if (!startDate || !endDate) return
+    if (!startDate || !endDate || !lavori || !spese) return
 
     const start = new Date(startDate)
     const end = new Date(endDate)
     end.setHours(23, 59, 59, 999)
 
-    const filtered = works.filter(work => {
+    const filtered = lavori.filter(work => {
       const workDate = new Date(work.data.split('/').reverse().join('-'))
       return workDate >= start && workDate <= end
     }).sort((a, b) => {
@@ -46,18 +45,30 @@ const Invoice = () => {
       return dateA - dateB
     })
 
+    const filteredSpeseList = spese.filter(spesa => {
+      const spesaDate = new Date(spesa.data_acquisto.split('/').reverse().join('-'))
+      return spesaDate >= start && spesaDate <= end
+    }).sort((a, b) => {
+      const dateA = new Date(a.data_acquisto.split('/').reverse().join('-'))
+      const dateB = new Date(b.data_acquisto.split('/').reverse().join('-'))
+      return dateA - dateB
+    })
+
     setFilteredWorks(filtered)
-    calculateInvoice(filtered)
+    setFilteredSpese(filteredSpeseList)
+    calculateInvoice(filtered, filteredSpeseList)
   }
 
-  const calculateInvoice = (worksList) => {
-    if (!worksList || worksList.length === 0) {
+  const calculateInvoice = (worksList, speseList = []) => {
+    if ((!worksList || worksList.length === 0) && (!speseList || speseList.length === 0)) {
       setInvoiceData(null)
       return
     }
 
-    const totale = worksList.reduce((sum, w) => sum + (w.importo || 0), 0)
-    const totaleOre = worksList.reduce((sum, w) => sum + (parseFloat(w.durata) || 0), 0)
+    const totaleLavori = worksList ? worksList.reduce((sum, w) => sum + (w.importo || 0), 0) : 0
+    const totaleSpese = speseList ? speseList.reduce((sum, s) => sum + (s.prezzo || 0), 0) : 0
+    const totale = totaleLavori + totaleSpese
+    const totaleOre = worksList ? worksList.reduce((sum, w) => sum + (parseFloat(w.durata) || 0), 0) : 0
 
     // Calcola la divisione per millesimi con arrotondamento all'euro
     const divisioneMillesimi = {}
@@ -99,8 +110,11 @@ const Invoice = () => {
 
     setInvoiceData({
       totale,
+      totaleLavori,
+      totaleSpese,
       totaleOre,
-      numeroLavori: worksList.length,
+      numeroLavori: worksList ? worksList.length : 0,
+      numeroSpese: speseList ? speseList.length : 0,
       divisioneMillesimi,
       dateRange: { start: startDate, end: endDate }
     })
@@ -116,7 +130,7 @@ const Invoice = () => {
 
   const exportToPDF = async () => {
     try {
-      if (!invoiceData || filteredWorks.length === 0) {
+      if (!invoiceData || (filteredWorks.length === 0 && filteredSpese.length === 0)) {
         alert('Genera prima la fattura')
         return
       }
@@ -161,6 +175,10 @@ const Invoice = () => {
       doc.text(`Numero lavori: ${invoiceData.numeroLavori}`, margin + 5, yPosition)
       doc.text(`Ore totali: ${invoiceData.totaleOre.toFixed(1)}h`, margin + 60, yPosition)
       yPosition += 6
+      if (invoiceData.numeroSpese > 0) {
+        doc.text(`Spese condominiali: ${invoiceData.numeroSpese} (${invoiceData.totaleSpese.toFixed(2)} €)`, margin + 5, yPosition)
+        yPosition += 6
+      }
       doc.setFont('helvetica', 'bold')
       doc.text(`Totale fattura: ${invoiceData.totale.toFixed(2)} €`, margin + 5, yPosition)
       yPosition += 20
@@ -268,6 +286,128 @@ const Invoice = () => {
       })
 
       yPosition += 10
+
+      // Sezione Spese Condominiali
+      if (filteredSpese && filteredSpese.length > 0) {
+        if (yPosition > pageHeight - 60) {
+          doc.addPage()
+          yPosition = 20
+        }
+
+        doc.setFontSize(14)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Spese Condominiali', margin, yPosition)
+        yPosition += 8
+
+        doc.setFont('helvetica', 'normal')
+        filteredSpese.forEach((spesa, index) => {
+          // Controlla se serve una nuova pagina
+          if (yPosition > pageHeight - 80) {
+            doc.addPage()
+            yPosition = 20
+          }
+
+          const hasScontrino = spesa.scontrino_url && spesa.scontrino_url.match(/\.(jpg|jpeg|png|webp)$/i)
+          const boxHeight = hasScontrino ? 50 : 22
+          
+          // Box per ogni spesa
+          if (index % 2 === 0) {
+            doc.setFillColor(249, 250, 251)
+            doc.rect(margin, yPosition - 2, pageWidth - (margin * 2), boxHeight, 'F')
+          } else {
+            doc.setDrawColor(242, 244, 247)
+            doc.setLineWidth(0.5)
+            doc.rect(margin, yPosition - 2, pageWidth - (margin * 2), boxHeight, 'S')
+          }
+
+          let currentY = yPosition
+
+          // Prima riga: Data e Oggetto
+          doc.setFontSize(9)
+          doc.setFont('helvetica', 'bold')
+          doc.text('Data:', margin + 3, currentY)
+          doc.setFont('helvetica', 'normal')
+          doc.text(String(spesa.data_acquisto || ''), margin + 18, currentY)
+          
+          doc.setFont('helvetica', 'bold')
+          doc.text('Oggetto:', margin + 60, currentY)
+          doc.setFont('helvetica', 'normal')
+          const oggetto = String(spesa.oggetto || '')
+          const oggettoText = oggetto.length > 50 ? oggetto.substring(0, 47) + '...' : oggetto
+          doc.text(oggettoText, margin + 85, currentY)
+          currentY += 5
+
+          // Seconda riga: Prezzo
+          doc.setFontSize(9)
+          doc.setFont('helvetica', 'bold')
+          doc.text('Prezzo:', margin + 3, currentY)
+          doc.setFont('helvetica', 'bold')
+          doc.setTextColor(70, 130, 180)
+          const prezzo = parseFloat(spesa.prezzo || 0)
+          doc.text(`${prezzo.toFixed(2)} €`, margin + 25, currentY)
+          doc.setTextColor(0, 0, 0)
+          doc.setFont('helvetica', 'normal')
+
+          // Immagine scontrino se presente
+          if (hasScontrino) {
+            try {
+              currentY += 8
+              doc.setFontSize(8)
+              doc.setFont('helvetica', 'italic')
+              doc.setTextColor(100, 100, 100)
+              doc.text('Scontrino:', margin + 3, currentY)
+              doc.setTextColor(0, 0, 0)
+              doc.setFont('helvetica', 'normal')
+              
+              // Carica e inserisci immagine
+              const img = new Image()
+              img.crossOrigin = 'anonymous'
+              
+              await new Promise((resolve, reject) => {
+                img.onload = () => {
+                  try {
+                    // Calcola dimensioni mantenendo proporzioni (max width 80mm)
+                    const maxWidth = 80
+                    const maxHeight = 30
+                    let imgWidth = img.width * 0.264583 // Converti px a mm
+                    let imgHeight = img.height * 0.264583
+                    
+                    const ratio = Math.min(maxWidth / imgWidth, maxHeight / imgHeight, 1)
+                    imgWidth *= ratio
+                    imgHeight *= ratio
+                    
+                    currentY += 5
+                    doc.addImage(img, 'JPEG', margin + 3, currentY, imgWidth, imgHeight)
+                    currentY += imgHeight + 3
+                    resolve()
+                  } catch (err) {
+                    console.warn('Errore inserimento immagine:', err)
+                    doc.setFontSize(7)
+                    doc.setTextColor(150, 150, 150)
+                    doc.text('(Immagine non disponibile)', margin + 3, currentY + 5)
+                    doc.setTextColor(0, 0, 0)
+                    resolve()
+                  }
+                }
+                img.onerror = () => {
+                  doc.setFontSize(7)
+                  doc.setTextColor(150, 150, 150)
+                  doc.text('(Immagine non disponibile)', margin + 3, currentY + 5)
+                  doc.setTextColor(0, 0, 0)
+                  resolve()
+                }
+                img.src = spesa.scontrino_url
+              })
+            } catch (err) {
+              console.warn('Errore caricamento scontrino:', err)
+            }
+          }
+
+          yPosition = currentY + 6
+        })
+
+        yPosition += 10
+      }
 
       // Divisione Millesimi
       if (yPosition > pageHeight - 60) {
@@ -472,16 +612,23 @@ const Invoice = () => {
               <div className="summary-label">Ore Totali</div>
               <div className="summary-value">{invoiceData.totaleOre.toFixed(1)}h</div>
             </div>
+            {invoiceData.numeroSpese > 0 && (
+              <div className="summary-card">
+                <div className="summary-label">Spese Condominiali</div>
+                <div className="summary-value">{invoiceData.numeroSpese} ({invoiceData.totaleSpese.toFixed(2)} €)</div>
+              </div>
+            )}
             <div className="summary-card highlight">
               <div className="summary-label">Totale Fattura</div>
               <div className="summary-value">{invoiceData.totale.toFixed(2)} €</div>
             </div>
           </div>
 
-          <div className="invoice-works">
-            <h2>Dettaglio Lavori</h2>
-            <div className="works-list">
-              {filteredWorks.map(work => (
+          {filteredWorks.length > 0 && (
+            <div className="invoice-works">
+              <h2>Dettaglio Lavori</h2>
+              <div className="works-list">
+                {filteredWorks.map(work => (
                 <div key={work.id} className="work-item">
                   <div className="work-item-header">
                     <span className="work-date">{work.data}</span>
@@ -502,9 +649,44 @@ const Invoice = () => {
                     </div>
                   </div>
                 </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {filteredSpese.length > 0 && (
+            <div className="invoice-works">
+              <h2>Spese Condominiali</h2>
+              <div className="works-list">
+                {filteredSpese.map(spesa => (
+                  <div key={spesa.id} className="work-item">
+                    <div className="work-item-header">
+                      <span className="work-date">{spesa.data_acquisto}</span>
+                    </div>
+                    <div className="work-item-body">
+                      <div className="work-description">{spesa.oggetto}</div>
+                      <div className="work-details">
+                        <span className="work-amount">{spesa.prezzo ? `${spesa.prezzo.toFixed(2)} €` : '-'}</span>
+                      </div>
+                      {spesa.scontrino_url && (
+                        <div className="work-details" style={{ marginTop: '8px' }}>
+                          <a 
+                            href={spesa.scontrino_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="scontrino-link-inline"
+                          >
+                            <Icon name="file" size={16} />
+                            Visualizza scontrino
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="invoice-division">
             <h2>Divisione per Millesimi</h2>
@@ -538,10 +720,10 @@ const Invoice = () => {
         </>
       )}
 
-      {!invoiceData && startDate && endDate && filteredWorks.length === 0 && (
+      {!invoiceData && startDate && endDate && filteredWorks.length === 0 && filteredSpese.length === 0 && (
         <div className="empty-state">
           <Icon name="file-text" size={48} className="icon-empty-state" />
-          <p>Nessun lavoro trovato nel periodo selezionato</p>
+          <p>Nessun lavoro o spesa trovati nel periodo selezionato</p>
         </div>
       )}
     </div>
