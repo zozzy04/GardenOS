@@ -144,30 +144,42 @@ const Invoice = () => {
       const margin = 20
       const maxWidth = pageWidth - (margin * 2)
 
-      // Header con rettangolo
-      doc.setFillColor(36, 51, 105) // Blu notte (#243369)
-      doc.rect(margin, 10, pageWidth - (margin * 2), 25, 'F')
+      // Header moderno con gradiente simulato (due rettangoli sovrapposti)
+      // Rettangolo principale con colore moderno
+      doc.setFillColor(37, 99, 235) // Blu moderno (#2563eb)
+      doc.rect(margin, 10, pageWidth - (margin * 2), 30, 'F')
+      
+      // Bordo superiore decorativo
+      doc.setFillColor(29, 78, 216) // Blu più scuro per profondità
+      doc.rect(margin, 10, pageWidth - (margin * 2), 3, 'F')
       
       doc.setTextColor(255, 255, 255)
-      doc.setFontSize(18)
+      doc.setFontSize(20)
       doc.setFont('helvetica', 'bold')
-      doc.text('FATTURA LAVORI GIARDINO', pageWidth / 2, 22, { align: 'center' })
+      doc.text('FATTURA LAVORI GIARDINO', pageWidth / 2, 26, { align: 'center' })
       
-      doc.setFontSize(10)
+      doc.setFontSize(11)
       doc.setFont('helvetica', 'normal')
-      doc.text(`Periodo: ${formatDate(invoiceData.dateRange.start)} - ${formatDate(invoiceData.dateRange.end)}`, pageWidth / 2, 28, { align: 'center' })
+      doc.setTextColor(255, 255, 255, 0.9)
+      doc.text(`Periodo: ${formatDate(invoiceData.dateRange.start)} - ${formatDate(invoiceData.dateRange.end)}`, pageWidth / 2, 33, { align: 'center' })
       
       doc.setTextColor(0, 0, 0)
-      yPosition = 45
+      yPosition = 50
 
-      // Riepilogo in box
-      doc.setFillColor(242, 244, 247) // Gray-100
-      doc.rect(margin, yPosition, pageWidth - (margin * 2), 25, 'F')
+      // Riepilogo in box moderno con bordo
+      doc.setFillColor(249, 250, 251) // Gray-50
+      doc.rect(margin, yPosition, pageWidth - (margin * 2), 30, 'F')
       
-      yPosition += 8
-      doc.setFontSize(12)
+      // Bordo colorato superiore
+      doc.setFillColor(37, 99, 235)
+      doc.rect(margin, yPosition, pageWidth - (margin * 2), 2, 'F')
+      
+      yPosition += 10
+      doc.setFontSize(13)
       doc.setFont('helvetica', 'bold')
+      doc.setTextColor(37, 99, 235)
       doc.text('Riepilogo', margin + 5, yPosition)
+      doc.setTextColor(0, 0, 0)
       yPosition += 8
 
       doc.setFontSize(10)
@@ -180,14 +192,23 @@ const Invoice = () => {
         yPosition += 6
       }
       doc.setFont('helvetica', 'bold')
+      doc.setFontSize(11)
+      doc.setTextColor(37, 99, 235)
       doc.text(`Totale fattura: ${invoiceData.totale.toFixed(2)} €`, margin + 5, yPosition)
-      yPosition += 20
+      doc.setTextColor(0, 0, 0)
+      yPosition += 25
 
-      // Dettaglio Lavori
-      doc.setFontSize(14)
+      // Dettaglio Lavori con titolo moderno
+      doc.setFontSize(15)
       doc.setFont('helvetica', 'bold')
+      doc.setTextColor(37, 99, 235)
       doc.text('Dettaglio Lavori', margin, yPosition)
-      yPosition += 8
+      doc.setTextColor(0, 0, 0)
+      // Linea decorativa sotto il titolo
+      doc.setDrawColor(37, 99, 235)
+      doc.setLineWidth(0.5)
+      doc.line(margin, yPosition + 2, margin + 60, yPosition + 2)
+      yPosition += 12
 
       // Righe lavori con dettagli estesi
       doc.setFont('helvetica', 'normal')
@@ -199,16 +220,26 @@ const Invoice = () => {
           yPosition = 20
         }
 
-        // Box per ogni lavoro con sfondo alternato
+        // Box per ogni lavoro con design moderno
         const hasNotes = work.note && typeof work.note === 'string' && work.note.trim()
-        const boxHeight = hasNotes ? 28 : 22
+        const boxHeight = hasNotes ? 30 : 24
         
+        // Sfondo alternato con bordo colorato
         if (index % 2 === 0) {
           doc.setFillColor(249, 250, 251) // Gray-50
           doc.rect(margin, yPosition - 2, pageWidth - (margin * 2), boxHeight, 'F')
+          // Bordo sinistro colorato
+          doc.setFillColor(37, 99, 235)
+          doc.rect(margin, yPosition - 2, 2, boxHeight, 'F')
         } else {
-          doc.setDrawColor(242, 244, 247)
-          doc.setLineWidth(0.5)
+          doc.setFillColor(255, 255, 255)
+          doc.rect(margin, yPosition - 2, pageWidth - (margin * 2), boxHeight, 'F')
+          // Bordo sinistro colorato
+          doc.setFillColor(59, 130, 246) // Blu più chiaro
+          doc.rect(margin, yPosition - 2, 2, boxHeight, 'F')
+          // Bordo esterno sottile
+          doc.setDrawColor(229, 231, 235)
+          doc.setLineWidth(0.3)
           doc.rect(margin, yPosition - 2, pageWidth - (margin * 2), boxHeight, 'S')
         }
 
@@ -217,67 +248,76 @@ const Invoice = () => {
         // Prima riga: Data e Tipi
         doc.setFontSize(9)
         doc.setFont('helvetica', 'bold')
-        doc.text('Data:', margin + 3, currentY)
+        doc.setTextColor(37, 99, 235)
+        doc.text('Data:', margin + 5, currentY)
         doc.setFont('helvetica', 'normal')
-        doc.text(String(work.data || ''), margin + 18, currentY)
+        doc.setTextColor(0, 0, 0)
+        doc.text(String(work.data || ''), margin + 20, currentY)
         
         const tipi = Array.isArray(work.tipi) ? work.tipi.join(', ') : (work.tipo || '-')
         const tipiText = tipi.length > 50 ? tipi.substring(0, 47) + '...' : tipi
         doc.setFont('helvetica', 'bold')
+        doc.setTextColor(37, 99, 235)
         doc.text('Tipi:', margin + 60, currentY)
         doc.setFont('helvetica', 'normal')
+        doc.setTextColor(0, 0, 0)
         doc.text(tipiText, margin + 75, currentY)
         
         // Indicatore prezzo personalizzato
         if (work.usaPrezzoPersonalizzato) {
           doc.setFontSize(7)
           doc.setFont('helvetica', 'bold')
-          doc.setTextColor(70, 130, 180) // Blu acciaio (#4682b4)
-          doc.text('* Prezzo personalizzato', pageWidth - margin - 3, currentY, { align: 'right' })
+          doc.setTextColor(245, 158, 11) // Arancione (#f59e0b)
+          doc.text('⭐ Prezzo personalizzato', pageWidth - margin - 3, currentY, { align: 'right' })
           doc.setTextColor(0, 0, 0)
         }
         
-        currentY += 5
+        currentY += 6
 
         // Seconda riga: Descrizione
         doc.setFontSize(9)
         doc.setFont('helvetica', 'bold')
-        doc.text('Descrizione:', margin + 3, currentY)
+        doc.setTextColor(37, 99, 235)
+        doc.text('Descrizione:', margin + 5, currentY)
         doc.setFont('helvetica', 'normal')
+        doc.setTextColor(0, 0, 0)
         const descrizione = String(work.descrizione || '')
         const descrizioneText = descrizione.length > 80 ? descrizione.substring(0, 77) + '...' : descrizione
-        doc.text(descrizioneText, margin + 30, currentY)
-        currentY += 5
+        doc.text(descrizioneText, margin + 32, currentY)
+        currentY += 6
 
         // Terza riga: Ore, Importo e Note (se presenti)
         doc.setFontSize(9)
         doc.setFont('helvetica', 'bold')
-        doc.text('Ore:', margin + 3, currentY)
+        doc.setTextColor(37, 99, 235)
+        doc.text('Ore:', margin + 5, currentY)
         doc.setFont('helvetica', 'normal')
-        doc.text(String(work.durata || '0'), margin + 18, currentY)
+        doc.setTextColor(0, 0, 0)
+        doc.text(String(work.durata || '0'), margin + 20, currentY)
         
         doc.setFont('helvetica', 'bold')
+        doc.setTextColor(37, 99, 235)
         doc.text('Importo:', margin + 40, currentY)
         doc.setFont('helvetica', 'bold')
-        doc.setTextColor(70, 130, 180) // Blu acciaio (#4682b4)
+        doc.setTextColor(34, 197, 94) // Verde successo (#22c55e)
         const importo = parseFloat(work.importo || 0)
-        doc.text(`${importo.toFixed(2)} €`, margin + 58, currentY)
+        doc.text(`${importo.toFixed(2)} €`, margin + 60, currentY)
         doc.setTextColor(0, 0, 0)
         doc.setFont('helvetica', 'normal')
 
         // Note se presenti
         if (hasNotes) {
-          currentY += 5
+          currentY += 6
           doc.setFontSize(8)
           doc.setFont('helvetica', 'italic')
-          doc.setTextColor(100, 100, 100)
+          doc.setTextColor(107, 114, 128) // Gray-500
           const noteText = work.note.length > 100 ? work.note.substring(0, 97) + '...' : work.note
-          doc.text(`Note: ${noteText}`, margin + 3, currentY)
+          doc.text(`💬 Note: ${noteText}`, margin + 5, currentY)
           doc.setTextColor(0, 0, 0)
           doc.setFont('helvetica', 'normal')
         }
 
-        yPosition = currentY + 6
+        yPosition = currentY + 8
       } catch (error) {
         console.error('Errore nel rendering del lavoro:', error, work)
         // Continua con il prossimo lavoro anche in caso di errore
@@ -294,10 +334,16 @@ const Invoice = () => {
           yPosition = 20
         }
 
-        doc.setFontSize(14)
+        doc.setFontSize(15)
         doc.setFont('helvetica', 'bold')
+        doc.setTextColor(37, 99, 235)
         doc.text('Spese Condominiali', margin, yPosition)
-        yPosition += 8
+        doc.setTextColor(0, 0, 0)
+        // Linea decorativa sotto il titolo
+        doc.setDrawColor(37, 99, 235)
+        doc.setLineWidth(0.5)
+        doc.line(margin, yPosition + 2, margin + 60, yPosition + 2)
+        yPosition += 12
 
         doc.setFont('helvetica', 'normal')
         for (let index = 0; index < filteredSpese.length; index++) {
@@ -311,13 +357,22 @@ const Invoice = () => {
           const hasScontrino = spesa.scontrino_url && spesa.scontrino_url.match(/\.(jpg|jpeg|png|webp)$/i)
           const boxHeight = hasScontrino ? 50 : 22
           
-          // Box per ogni spesa
+          // Box per ogni spesa con design moderno
           if (index % 2 === 0) {
             doc.setFillColor(249, 250, 251)
             doc.rect(margin, yPosition - 2, pageWidth - (margin * 2), boxHeight, 'F')
+            // Bordo sinistro colorato
+            doc.setFillColor(168, 85, 247) // Viola (#a855f7)
+            doc.rect(margin, yPosition - 2, 2, boxHeight, 'F')
           } else {
-            doc.setDrawColor(242, 244, 247)
-            doc.setLineWidth(0.5)
+            doc.setFillColor(255, 255, 255)
+            doc.rect(margin, yPosition - 2, pageWidth - (margin * 2), boxHeight, 'F')
+            // Bordo sinistro colorato
+            doc.setFillColor(192, 132, 252) // Viola più chiaro
+            doc.rect(margin, yPosition - 2, 2, boxHeight, 'F')
+            // Bordo esterno sottile
+            doc.setDrawColor(229, 231, 235)
+            doc.setLineWidth(0.3)
             doc.rect(margin, yPosition - 2, pageWidth - (margin * 2), boxHeight, 'S')
           }
 
@@ -326,24 +381,29 @@ const Invoice = () => {
           // Prima riga: Data e Oggetto
           doc.setFontSize(9)
           doc.setFont('helvetica', 'bold')
-          doc.text('Data:', margin + 3, currentY)
+          doc.setTextColor(168, 85, 247)
+          doc.text('Data:', margin + 5, currentY)
           doc.setFont('helvetica', 'normal')
-          doc.text(String(spesa.data_acquisto || ''), margin + 18, currentY)
+          doc.setTextColor(0, 0, 0)
+          doc.text(String(spesa.data_acquisto || ''), margin + 20, currentY)
           
           doc.setFont('helvetica', 'bold')
+          doc.setTextColor(168, 85, 247)
           doc.text('Oggetto:', margin + 60, currentY)
           doc.setFont('helvetica', 'normal')
+          doc.setTextColor(0, 0, 0)
           const oggetto = String(spesa.oggetto || '')
           const oggettoText = oggetto.length > 50 ? oggetto.substring(0, 47) + '...' : oggetto
           doc.text(oggettoText, margin + 85, currentY)
-          currentY += 5
+          currentY += 6
 
           // Seconda riga: Prezzo
           doc.setFontSize(9)
           doc.setFont('helvetica', 'bold')
-          doc.text('Prezzo:', margin + 3, currentY)
+          doc.setTextColor(168, 85, 247)
+          doc.text('Prezzo:', margin + 5, currentY)
           doc.setFont('helvetica', 'bold')
-          doc.setTextColor(70, 130, 180)
+          doc.setTextColor(34, 197, 94) // Verde successo
           const prezzo = parseFloat(spesa.prezzo || 0)
           doc.text(`${prezzo.toFixed(2)} €`, margin + 25, currentY)
           doc.setTextColor(0, 0, 0)
@@ -355,8 +415,8 @@ const Invoice = () => {
               currentY += 8
               doc.setFontSize(8)
               doc.setFont('helvetica', 'italic')
-              doc.setTextColor(100, 100, 100)
-              doc.text('Scontrino:', margin + 3, currentY)
+              doc.setTextColor(107, 114, 128) // Gray-500
+              doc.text('📄 Scontrino:', margin + 5, currentY)
               doc.setTextColor(0, 0, 0)
               doc.setFont('helvetica', 'normal')
               
@@ -416,27 +476,35 @@ const Invoice = () => {
         yPosition = 20
       }
 
-      doc.setFontSize(14)
+      doc.setFontSize(15)
       doc.setFont('helvetica', 'bold')
+      doc.setTextColor(37, 99, 235)
       doc.text('Divisione per Millesimi', margin, yPosition)
-      yPosition += 8
+      doc.setTextColor(0, 0, 0)
+      // Linea decorativa sotto il titolo
+      doc.setDrawColor(37, 99, 235)
+      doc.setLineWidth(0.5)
+      doc.line(margin, yPosition + 2, margin + 60, yPosition + 2)
+      yPosition += 12
 
-      // Tabella millesimi con sfondo header
-      doc.setFillColor(242, 244, 247)
-      doc.rect(margin, yPosition - 5, pageWidth - (margin * 2), 7, 'F')
+      // Tabella millesimi con header moderno
+      doc.setFillColor(37, 99, 235) // Header blu moderno
+      doc.rect(margin, yPosition - 5, pageWidth - (margin * 2), 8, 'F')
       
-      doc.setFontSize(9)
+      doc.setFontSize(10)
       doc.setFont('helvetica', 'bold')
+      doc.setTextColor(255, 255, 255)
       const millesimiHeaders = ['Famiglia', 'Millesimi', 'Importo']
       const millesimiColWidths = [100, 40, 40]
       let xPosition = margin + 2
 
-      // Header
+      // Header con testo bianco
       millesimiHeaders.forEach((header, index) => {
         doc.text(header, xPosition, yPosition)
         xPosition += millesimiColWidths[index]
       })
-      yPosition += 8
+      doc.setTextColor(0, 0, 0)
+      yPosition += 10
 
       // Righe millesimi
       doc.setFont('helvetica', 'normal')
@@ -446,23 +514,30 @@ const Invoice = () => {
           doc.addPage()
           yPosition = 20
           // Re-disegna header
-          doc.setFillColor(242, 244, 247)
-          doc.rect(margin, yPosition - 5, pageWidth - (margin * 2), 7, 'F')
+          doc.setFillColor(37, 99, 235)
+          doc.rect(margin, yPosition - 5, pageWidth - (margin * 2), 8, 'F')
           doc.setFont('helvetica', 'bold')
+          doc.setTextColor(255, 255, 255)
           xPosition = margin + 2
           millesimiHeaders.forEach((header, idx) => {
             doc.text(header, xPosition, yPosition)
             xPosition += millesimiColWidths[idx]
           })
-          yPosition += 8
+          doc.setTextColor(0, 0, 0)
+          yPosition += 10
           doc.setFont('helvetica', 'normal')
           rowIndex = 0
         }
 
-        // Sfondo alternato
+        // Sfondo alternato con bordo sottile
         if (rowIndex % 2 === 0) {
           doc.setFillColor(249, 250, 251)
-          doc.rect(margin, yPosition - 4, pageWidth - (margin * 2), 6, 'F')
+          doc.rect(margin, yPosition - 4, pageWidth - (margin * 2), 7, 'F')
+        } else {
+          // Bordo sottile per righe dispari
+          doc.setDrawColor(229, 231, 235)
+          doc.setLineWidth(0.2)
+          doc.rect(margin, yPosition - 4, pageWidth - (margin * 2), 7, 'S')
         }
 
         xPosition = margin + 2
@@ -471,34 +546,46 @@ const Invoice = () => {
         doc.text(famigliaText, xPosition, yPosition)
         xPosition += millesimiColWidths[0]
 
+        doc.setTextColor(107, 114, 128) // Gray-500
         doc.text(data.millesimi.toFixed(3).replace('.', ','), xPosition, yPosition)
         xPosition += millesimiColWidths[1]
+        doc.setTextColor(0, 0, 0)
 
         doc.setFont('helvetica', 'bold')
+        doc.setTextColor(34, 197, 94) // Verde successo
         doc.text(`${data.importo.toFixed(0)} €`, xPosition, yPosition)
         doc.setFont('helvetica', 'normal')
+        doc.setTextColor(0, 0, 0)
 
-        yPosition += 6
+        yPosition += 7
         rowIndex++
       })
 
-      // Totale con sfondo
-      yPosition += 2
+      // Totale con sfondo moderno e gradiente simulato
+      yPosition += 3
       const totaleRectY = yPosition - 4
-      const totaleRectHeight = 8
-      doc.setFillColor(36, 51, 105) // Blu notte (#243369)
+      const totaleRectHeight = 10
+      
+      // Rettangolo principale
+      doc.setFillColor(37, 99, 235) // Blu moderno
       doc.rect(margin, totaleRectY, pageWidth - (margin * 2), totaleRectHeight, 'F')
       
-      // Centra verticalmente il testo nel rettangolo (il testo ha base a yPosition, quindi aggiustiamo)
-      const textY = totaleRectY + (totaleRectHeight / 2) + 2 // +2 per centrare meglio rispetto alla base del testo
+      // Bordo superiore più scuro per profondità
+      doc.setFillColor(29, 78, 216)
+      doc.rect(margin, totaleRectY, pageWidth - (margin * 2), 2, 'F')
+      
+      // Centra verticalmente il testo nel rettangolo
+      const textY = totaleRectY + (totaleRectHeight / 2) + 2
 
       doc.setTextColor(255, 255, 255)
       doc.setFont('helvetica', 'bold')
+      doc.setFontSize(11)
       xPosition = margin + 2
       doc.text('Totale', xPosition, textY)
       xPosition += millesimiColWidths[0]
       doc.text('1000,000', xPosition, textY)
       xPosition += millesimiColWidths[1]
+      doc.setFontSize(12)
       doc.text(`${Math.round(invoiceData.totale).toFixed(0)} €`, xPosition, textY)
 
       // Footer su tutte le pagine
@@ -525,9 +612,10 @@ const Invoice = () => {
           { align: 'center' }
         )
         
-        // Powered by
+        // Powered by con stile moderno
         doc.setFontSize(7)
-        doc.setTextColor(100, 100, 100)
+        doc.setTextColor(156, 163, 175) // Gray-400
+        doc.setFont('helvetica', 'italic')
         doc.text(
           'Powered by Riccardo Zozzolotto with GardenOS',
           pageWidth / 2,

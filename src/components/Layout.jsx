@@ -30,7 +30,6 @@ const Layout = ({ children, currentPage, onPageChange, user, onLogout }) => {
   const menuItems = [
     { id: 'dashboard', icon: 'gauge', label: 'Dashboard' },
     { id: 'lavori', icon: 'clipboard', label: 'Nuovo Lavoro' },
-    { id: 'storico', icon: 'file-text', label: 'Storico' },
     { id: 'calendario', icon: 'calendar', label: 'Calendario' },
     { id: 'spese', icon: 'shopping-cart', label: 'Spese Condominiali' },
     { id: 'fattura', icon: 'receipt', label: 'Fattura' },
