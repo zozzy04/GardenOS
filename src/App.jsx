@@ -3,7 +3,6 @@ import Layout from './components/Layout'
 import Login from './components/Login'
 import Dashboard from './components/Dashboard'
 import WorkLog from './components/WorkLog'
-import History from './components/History'
 import Calendar from './components/Calendar'
 import WeatherStats from './components/WeatherStats'
 import Invoice from './components/Invoice'
@@ -54,8 +53,6 @@ function App() {
         return <Dashboard />
       case 'lavori':
         return <WorkLog />
-      case 'storico':
-        return <History />
       case 'calendario':
         return <Calendar />
       case 'spese':

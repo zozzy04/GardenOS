@@ -99,8 +99,8 @@ const Dashboard = () => {
       {/* Statistiche Principali */}
       <div className="stats-grid">
         <div className="stat-card-large">
-          <div className="stat-icon-wrapper" style={{ background: 'rgba(70, 130, 180, 0.1)' }}>
-            <Icon name="clipboard" size={32} />
+          <div className="stat-icon-wrapper" style={{ background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.1) 100%)' }}>
+            <Icon name="clipboard" size={36} />
           </div>
           <div className="stat-content">
             <span className="stat-label">Lavori Totali</span>
@@ -109,8 +109,8 @@ const Dashboard = () => {
         </div>
 
         <div className="stat-card-large">
-          <div className="stat-icon-wrapper" style={{ background: 'rgba(18, 183, 106, 0.1)' }}>
-            <Icon name="gauge" size={32} />
+          <div className="stat-icon-wrapper" style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%)' }}>
+            <Icon name="gauge" size={36} />
           </div>
           <div className="stat-content">
             <span className="stat-label">Ore Totali</span>
@@ -119,8 +119,8 @@ const Dashboard = () => {
         </div>
 
         <div className="stat-card-large highlight">
-          <div className="stat-icon-wrapper" style={{ background: 'rgba(255, 255, 255, 0.2)' }}>
-            <Icon name="gauge" size={32} />
+          <div className="stat-icon-wrapper" style={{ background: 'rgba(255, 255, 255, 0.25)' }}>
+            <Icon name="gauge" size={36} />
           </div>
           <div className="stat-content">
             <span className="stat-label">Guadagno Totale</span>
