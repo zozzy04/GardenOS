@@ -1,55 +1,98 @@
-import { useState, useEffect } from 'react'
-import Icon from './Icons'
+import { useState } from 'react'
+import {
+  AlertCircleIcon,
+  ClipboardListIcon,
+  DownloadIcon,
+  FileTextIcon,
+  PencilIcon,
+  PlusIcon,
+  Trash2Icon,
+  XIcon,
+} from 'lucide-react'
 import { useAuth } from '../hooks/useSupabase'
 import { useLavori } from '../hooks/useSupabase'
-import './WorkLog.css'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { PageContainer, PageHeader, PageToolbar } from '@/components/page-layout'
+import { ConfirmActionDialog } from '@/components/confirm-action-dialog'
+import { toastError, toastSuccess } from '@/lib/notify'
+import { Loader2Icon } from 'lucide-react'
 
-// Tariffe orarie per categoria
 const TARIFFE = {
   'Taglio erba': 15,
   'Taglio siepe': 20,
-  'Raccolta foglie': 15
+  'Raccolta foglie': 15,
 }
 
 const WorkLog = () => {
   const { user } = useAuth()
-  const { lavori, loading, error, createLavoro, updateLavoro, deleteLavoro } = useLavori(user?.id)
+  const { lavori, loading, error, createLavoro, updateLavoro, deleteLavoro } = useLavori(
+    user?.id
+  )
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [formData, setFormData] = useState({
     data: new Date().toISOString().split('T')[0],
-    tipi: [], // Array di categorie selezionate
+    tipi: [],
     descrizione: '',
     durata: '0.5',
     note: '',
     prezzoPersonalizzato: '',
-    usaPrezzoPersonalizzato: false
+    usaPrezzoPersonalizzato: false,
   })
   const [filterType, setFilterType] = useState('tutti')
   const [submitting, setSubmitting] = useState(false)
+  const [deleteTargetId, setDeleteTargetId] = useState(null)
 
-  // Converti lavori da Supabase al formato dell'app
   const works = lavori || []
 
-  // Calcola l'importo in base ai tipi (media delle tariffe) e alle ore, o usa prezzo personalizzato
-  const calculateImporto = (tipi, durata, prezzoPersonalizzato = '', usaPrezzoPersonalizzato = false) => {
-    // Se è attivo il prezzo personalizzato e c'è un valore, usalo
+  const calculateImporto = (
+    tipi,
+    durata,
+    prezzoPersonalizzato = '',
+    usaPrezzoPersonalizzato = false
+  ) => {
     if (usaPrezzoPersonalizzato && prezzoPersonalizzato) {
       return parseFloat(prezzoPersonalizzato).toFixed(2)
     }
-    // Altrimenti calcola automaticamente
     if (!tipi || tipi.length === 0 || !durata) return 0
-    const tariffe = tipi.map(tipo => TARIFFE[tipo] || 0).filter(t => t > 0)
+    const tariffe = tipi.map((tipo) => TARIFFE[tipo] || 0).filter((t) => t > 0)
     if (tariffe.length === 0) return 0
     const tariffaMedia = tariffe.reduce((sum, t) => sum + t, 0) / tariffe.length
     return (parseFloat(durata) * tariffaMedia).toFixed(2)
   }
 
-  // Gestisce la selezione/deselezione delle categorie
   const handleTipoToggle = (tipo) => {
     const currentTipi = formData.tipi || []
     if (currentTipi.includes(tipo)) {
-      setFormData({ ...formData, tipi: currentTipi.filter(t => t !== tipo) })
+      setFormData({ ...formData, tipi: currentTipi.filter((t) => t !== tipo) })
     } else {
       setFormData({ ...formData, tipi: [...currentTipi, tipo] })
     }
@@ -58,26 +101,29 @@ const WorkLog = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!formData.usaPrezzoPersonalizzato && (!formData.tipi || formData.tipi.length === 0)) {
-      alert('Seleziona almeno una categoria di lavoro oppure usa un prezzo personalizzato')
+      toastError('Seleziona almeno una categoria di lavoro oppure usa un prezzo personalizzato')
       return
     }
-    if (formData.usaPrezzoPersonalizzato && (!formData.prezzoPersonalizzato || parseFloat(formData.prezzoPersonalizzato) <= 0)) {
-      alert('Inserisci un prezzo personalizzato valido')
+    if (
+      formData.usaPrezzoPersonalizzato &&
+      (!formData.prezzoPersonalizzato || parseFloat(formData.prezzoPersonalizzato) <= 0)
+    ) {
+      toastError('Inserisci un prezzo personalizzato valido')
       return
     }
     if (!formData.durata || parseFloat(formData.durata) <= 0) {
-      alert('Inserisci un numero di ore valido')
+      toastError('Inserisci un numero di ore valido')
       return
     }
 
     setSubmitting(true)
     const importo = calculateImporto(
-      formData.tipi, 
-      formData.durata, 
-      formData.prezzoPersonalizzato, 
+      formData.tipi,
+      formData.durata,
+      formData.prezzoPersonalizzato,
       formData.usaPrezzoPersonalizzato
     )
-    
+
     const workData = {
       data: new Date(formData.data).toLocaleDateString('it-IT'),
       tipi: formData.tipi,
@@ -86,29 +132,28 @@ const WorkLog = () => {
       importo: parseFloat(importo),
       note: formData.note || '',
       usaPrezzoPersonalizzato: formData.usaPrezzoPersonalizzato,
-      prezzoPersonalizzato: formData.usaPrezzoPersonalizzato ? formData.prezzoPersonalizzato : ''
+      prezzoPersonalizzato: formData.usaPrezzoPersonalizzato ? formData.prezzoPersonalizzato : '',
     }
 
     try {
       if (editingId) {
-        // Modifica lavoro esistente
         const result = await updateLavoro(editingId, workData)
         if (result.error) {
-          alert('Errore durante l\'aggiornamento: ' + result.error.message)
+          toastError("Errore durante l'aggiornamento: " + result.error.message)
           setSubmitting(false)
           return
         }
+        toastSuccess('Lavoro aggiornato')
       } else {
-        // Crea nuovo lavoro
         const result = await createLavoro(workData)
         if (result.error) {
-          alert('Errore durante la creazione: ' + result.error.message)
+          toastError('Errore durante la creazione: ' + result.error.message)
           setSubmitting(false)
           return
         }
+        toastSuccess('Lavoro aggiunto')
       }
-      
-      // Reset form
+
       setFormData({
         data: new Date().toISOString().split('T')[0],
         tipi: [],
@@ -116,34 +161,26 @@ const WorkLog = () => {
         durata: '0.5',
         note: '',
         prezzoPersonalizzato: '',
-        usaPrezzoPersonalizzato: false
+        usaPrezzoPersonalizzato: false,
       })
       setEditingId(null)
       setShowForm(false)
     } catch (err) {
       console.error('Errore:', err)
-      alert('Si è verificato un errore. Riprova.')
+      toastError('Si è verificato un errore. Riprova.')
     } finally {
       setSubmitting(false)
     }
   }
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Sei sicuro di voler eliminare questo lavoro?')) {
-      const result = await deleteLavoro(id)
-      if (result.error) {
-        alert('Errore durante l\'eliminazione: ' + result.error.message)
-      }
-    }
-  }
-
   const handleEdit = (work) => {
-    // Gestisce compatibilità con vecchi dati (tipo come stringa)
-    const tipi = Array.isArray(work.tipi) ? work.tipi : (work.tipo ? [work.tipo] : [])
-    // Converte data da formato italiano (DD/MM/YYYY) a formato input date (YYYY-MM-DD)
+    const tipi = Array.isArray(work.tipi) ? work.tipi : work.tipo ? [work.tipo] : []
     const dataParts = work.data.split('/')
-    const dataISO = dataParts.length === 3 ? `${dataParts[2]}-${dataParts[1]}-${dataParts[0]}` : new Date().toISOString().split('T')[0]
-    
+    const dataISO =
+      dataParts.length === 3
+        ? `${dataParts[2]}-${dataParts[1]}-${dataParts[0]}`
+        : new Date().toISOString().split('T')[0]
+
     setFormData({
       data: dataISO,
       tipi: tipi,
@@ -151,26 +188,28 @@ const WorkLog = () => {
       durata: work.durata || '0.5',
       note: work.note || '',
       prezzoPersonalizzato: work.prezzoPersonalizzato || '',
-      usaPrezzoPersonalizzato: work.usaPrezzoPersonalizzato || false
+      usaPrezzoPersonalizzato: work.usaPrezzoPersonalizzato || false,
     })
     setEditingId(work.id)
     setShowForm(true)
-    // Scrolla al form
     setTimeout(() => {
-      document.querySelector('.work-form')?.scrollIntoView({ behavior: 'smooth' })
+      document.getElementById('work-log-form')?.scrollIntoView({ behavior: 'smooth' })
     }, 100)
   }
 
-  const filteredWorks = filterType === 'tutti' 
-    ? works 
-    : works.filter(work => {
-        // Gestisce sia array di tipi che tipo singolo (compatibilità)
-        const workTipi = Array.isArray(work.tipi) ? work.tipi : (work.tipo ? [work.tipo] : [])
-        return workTipi.includes(filterType)
-      })
+  const filteredWorks =
+    filterType === 'tutti'
+      ? works
+      : works.filter((work) => {
+          const workTipi = Array.isArray(work.tipi)
+            ? work.tipi
+            : work.tipo
+              ? [work.tipo]
+              : []
+          return workTipi.includes(filterType)
+        })
 
-  // Estrae tutti i tipi unici dai lavori (gestisce compatibilità)
-  const allTipi = works.flatMap(w => {
+  const allTipi = works.flatMap((w) => {
     if (Array.isArray(w.tipi)) return w.tipi
     if (w.tipo) return [w.tipo]
     return []
@@ -179,18 +218,18 @@ const WorkLog = () => {
 
   const exportToCSV = () => {
     const headers = ['Data', 'Tipi', 'Descrizione', 'Ore Lavoro', 'Importo (€)', 'Note']
-    const rows = works.map(w => {
-      const tipi = Array.isArray(w.tipi) ? w.tipi.join(' + ') : (w.tipo || '')
+    const rows = works.map((w) => {
+      const tipi = Array.isArray(w.tipi) ? w.tipi.join(' + ') : w.tipo || ''
       return [
         w.data,
         tipi,
         w.descrizione,
         w.durata || '0',
         w.importo ? `${w.importo.toFixed(2)}` : '0',
-        w.note || ''
+        w.note || '',
       ]
     })
-    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n')
+    const csv = [headers, ...rows].map((row) => row.map((cell) => `"${cell}"`).join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
@@ -198,361 +237,388 @@ const WorkLog = () => {
     link.click()
   }
 
-  // Calcola importo totale
   const totaleImporto = works.reduce((sum, w) => sum + (w.importo || 0), 0)
   const totaleOre = works.reduce((sum, w) => sum + (parseFloat(w.durata) || 0), 0)
 
   return (
-    <div className="work-log">
-      <div className="work-log-header">
-        <h1>
-          <Icon name="clipboard" size={28} className="icon-inline" />
-          Registro Lavori Giardino
-        </h1>
-        <div className="header-actions">
-          <button 
-            className="btn-primary"
+    <PageContainer>
+      <PageToolbar>
+        <PageHeader
+          title="Registro lavori giardino"
+          description="Registra e filtra le attività svolte"
+          icon={<ClipboardListIcon className="size-7 text-primary" />}
+        />
+        <div className="flex shrink-0 flex-wrap gap-3">
+          <Button
+            variant={showForm ? 'secondary' : 'default'}
             onClick={() => setShowForm(!showForm)}
           >
             {showForm ? (
               <>
-                <Icon name="x" size={16} />
+                <XIcon />
                 Chiudi
               </>
             ) : (
               <>
-                <Icon name="plus" size={16} />
-                Nuovo Lavoro
+                <PlusIcon />
+                Nuovo lavoro
               </>
             )}
-          </button>
+          </Button>
           {works.length > 0 && (
-            <button 
-              className="btn-secondary"
-              onClick={exportToCSV}
-            >
-              <Icon name="download" size={16} />
+            <Button variant="outline" onClick={exportToCSV}>
+              <DownloadIcon />
               Esporta CSV
-            </button>
+            </Button>
           )}
         </div>
-      </div>
+      </PageToolbar>
 
       {showForm && (
-        <form className="work-form" onSubmit={handleSubmit}>
-          <h2>{editingId ? 'Modifica Lavoro' : 'Nuovo Lavoro'}</h2>
-          <div className="form-grid">
-            <div className="form-group">
-              <label>Data *</label>
-              <input
-                type="date"
-                value={formData.data}
-                onChange={(e) => setFormData({ ...formData, data: e.target.value })}
-                required
-              />
-            </div>
-            <div className="form-group full-width">
-              <label>Categorie di Lavoro * (puoi selezionarne più di una)</label>
-              <div className="categorie-checkboxes">
-                {Object.keys(TARIFFE).map(tipo => (
-                  <label key={tipo} className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={(formData.tipi || []).includes(tipo)}
-                      onChange={() => handleTipoToggle(tipo)}
-                    />
-                    <span className="checkbox-text">
-                      {tipo} ({TARIFFE[tipo]}€/ora)
-                    </span>
-                  </label>
-                ))}
-              </div>
-              {(formData.tipi || []).length > 0 && (
-                <div className="selected-tipi-info">
-                  <span>Tariffa media: </span>
-                  <strong>
-                    {((formData.tipi || []).reduce((sum, t) => sum + (TARIFFE[t] || 0), 0) / (formData.tipi || []).length).toFixed(2)}€/ora
-                  </strong>
-                </div>
-              )}
-            </div>
-            <div className="form-group">
-              <label>Descrizione *</label>
-              <input
-                type="text"
-                value={formData.descrizione}
-                onChange={(e) => setFormData({ ...formData, descrizione: e.target.value })}
-                placeholder="Es: Potatura rosmarino, semina pomodori..."
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Ore Lavoro *</label>
-              <div className="duration-control">
-                <select
-                  value={formData.durata}
-                  onChange={(e) => setFormData({ ...formData, durata: e.target.value })}
-                  className="duration-select"
-                  required
-                >
-                  {Array.from({ length: 20 }, (_, i) => {
-                    const value = (i + 1) * 0.5
-                    return (
-                      <option key={value} value={value.toString()}>
-                        {value} {value === 1 ? 'ora' : 'ore'}
-                      </option>
-                    )
-                  })}
-                </select>
-                <div className="duration-display">
-                  {!formData.usaPrezzoPersonalizzato && (formData.tipi || []).length > 0 && (
-                    <span className="importo-preview">
-                      Totale: {calculateImporto(formData.tipi, formData.durata)} €
-                    </span>
-                  )}
-                  {formData.usaPrezzoPersonalizzato && formData.prezzoPersonalizzato && (
-                    <span className="importo-preview">
-                      Totale: {parseFloat(formData.prezzoPersonalizzato).toFixed(2)} €
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="form-group full-width">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={formData.usaPrezzoPersonalizzato}
-                  onChange={(e) => setFormData({ 
-                    ...formData, 
-                    usaPrezzoPersonalizzato: e.target.checked,
-                    prezzoPersonalizzato: e.target.checked ? formData.prezzoPersonalizzato : ''
-                  })}
-                />
-                <span className="checkbox-text">Usa prezzo personalizzato</span>
-              </label>
-              {formData.usaPrezzoPersonalizzato && (
-                <div className="prezzo-personalizzato-group" style={{ marginTop: '12px' }}>
-                  <label>Prezzo Personalizzato (€) *</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.prezzoPersonalizzato}
-                    onChange={(e) => setFormData({ ...formData, prezzoPersonalizzato: e.target.value })}
-                    placeholder="0.00"
-                    required={formData.usaPrezzoPersonalizzato}
-                    style={{ marginTop: '8px' }}
+        <Card id="work-log-form">
+          <CardHeader>
+            <CardTitle>{editingId ? 'Modifica lavoro' : 'Nuovo lavoro'}</CardTitle>
+            <CardDescription>Compila i campi obbligatori</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Data *</Label>
+                  <Input
+                    type="date"
+                    value={formData.data}
+                    onChange={(e) => setFormData({ ...formData, data: e.target.value })}
+                    required
                   />
-                  <p className="help-text" style={{ marginTop: '4px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    Il prezzo personalizzato sovrascrive il calcolo automatico
-                  </p>
                 </div>
-              )}
-            </div>
-            <div className="form-group full-width">
-              <label>Note</label>
-              <textarea
-                value={formData.note}
-                onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                placeholder="Note aggiuntive..."
-                rows="3"
-              />
-            </div>
-          </div>
-          <div className="form-actions">
-            <button type="submit" className="btn-primary" disabled={submitting}>
-              {submitting ? (
-                <>
-                  <div className="spinner-small"></div>
-                  Caricamento...
-                </>
-              ) : (
-                editingId ? 'Salva Modifiche' : 'Aggiungi Lavoro'
-              )}
-            </button>
-            <button 
-              type="button" 
-              className="btn-secondary"
-              onClick={() => {
-                setShowForm(false)
-                setEditingId(null)
-                setFormData({
-                  data: new Date().toISOString().split('T')[0],
-                  tipi: [],
-                  descrizione: '',
-                  durata: '0.5',
-                  note: '',
-                  prezzoPersonalizzato: '',
-                  usaPrezzoPersonalizzato: false
-                })
-              }}
-            >
-              Annulla
-            </button>
-          </div>
-        </form>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>Categorie di lavoro * (multipla)</Label>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {Object.keys(TARIFFE).map((tipo) => (
+                      <label
+                        key={tipo}
+                        className="flex cursor-pointer items-center gap-2 rounded-lg border border-input bg-background p-3 text-sm"
+                      >
+                        <Checkbox
+                          checked={(formData.tipi || []).includes(tipo)}
+                          onCheckedChange={() => handleTipoToggle(tipo)}
+                        />
+                        <span>
+                          {tipo} ({TARIFFE[tipo]}€/ora)
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  {(formData.tipi || []).length > 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      Tariffa media:{' '}
+                      <strong className="text-foreground">
+                        {(
+                          (formData.tipi || []).reduce((sum, t) => sum + (TARIFFE[t] || 0), 0) /
+                          (formData.tipi || []).length
+                        ).toFixed(2)}
+                        €/ora
+                      </strong>
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>Descrizione *</Label>
+                  <Input
+                    value={formData.descrizione}
+                    onChange={(e) => setFormData({ ...formData, descrizione: e.target.value })}
+                    placeholder="Es: Potatura rosmarino..."
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Ore lavoro *</Label>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <Select
+                      value={formData.durata}
+                      onValueChange={(v) => setFormData({ ...formData, durata: v })}
+                    >
+                      <SelectTrigger className="w-full sm:w-[200px]">
+                        <SelectValue placeholder="Durata" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 20 }, (_, i) => {
+                          const value = (i + 1) * 0.5
+                          const v = value.toString()
+                          return (
+                            <SelectItem key={v} value={v}>
+                              {value} {value === 1 ? 'ora' : 'ore'}
+                            </SelectItem>
+                          )
+                        })}
+                      </SelectContent>
+                    </Select>
+                    <div className="text-sm font-medium text-primary">
+                      {!formData.usaPrezzoPersonalizzato && (formData.tipi || []).length > 0 && (
+                        <span>Totale: {calculateImporto(formData.tipi, formData.durata)} €</span>
+                      )}
+                      {formData.usaPrezzoPersonalizzato && formData.prezzoPersonalizzato && (
+                        <span>
+                          Totale: {parseFloat(formData.prezzoPersonalizzato).toFixed(2)} €
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+                    <Checkbox
+                      checked={formData.usaPrezzoPersonalizzato}
+                      onCheckedChange={(checked) =>
+                        setFormData({
+                          ...formData,
+                          usaPrezzoPersonalizzato: !!checked,
+                          prezzoPersonalizzato: checked ? formData.prezzoPersonalizzato : '',
+                        })
+                      }
+                    />
+                    Usa prezzo personalizzato
+                  </label>
+                  {formData.usaPrezzoPersonalizzato && (
+                    <div className="mt-2 space-y-2">
+                      <Label>Prezzo personalizzato (€) *</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={formData.prezzoPersonalizzato}
+                        onChange={(e) =>
+                          setFormData({ ...formData, prezzoPersonalizzato: e.target.value })
+                        }
+                        placeholder="0.00"
+                        required={formData.usaPrezzoPersonalizzato}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Il prezzo personalizzato sostituisce il calcolo automatico
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>Note</Label>
+                  <Textarea
+                    value={formData.note}
+                    onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                    placeholder="Note aggiuntive..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button type="submit" disabled={submitting}>
+                  {submitting ? (
+                    <>
+                      <Loader2Icon className="size-4 animate-spin" />
+                      Caricamento...
+                    </>
+                  ) : editingId ? (
+                    'Salva modifiche'
+                  ) : (
+                    'Aggiungi lavoro'
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowForm(false)
+                    setEditingId(null)
+                    setFormData({
+                      data: new Date().toISOString().split('T')[0],
+                      tipi: [],
+                      descrizione: '',
+                      durata: '0.5',
+                      note: '',
+                      prezzoPersonalizzato: '',
+                      usaPrezzoPersonalizzato: false,
+                    })
+                  }}
+                >
+                  Annulla
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
       {works.length > 0 && (
-        <div className="filter-section">
-          <label>Filtra per tipo:</label>
-          <select 
-            value={filterType} 
-            onChange={(e) => setFilterType(e.target.value)}
-            className="filter-select"
-          >
-            {workTypes.map(type => (
-              <option key={type} value={type}>
-                {type === 'tutti' ? 'Tutti i lavori' : type}
-              </option>
-            ))}
-          </select>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Label className="shrink-0">Filtra per tipo</Label>
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="w-full sm:w-[min(100%,280px)]">
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              {workTypes.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {type === 'tutti' ? 'Tutti i lavori' : type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       )}
 
       {error && (
-        <div style={{
-          background: 'var(--color-error-50)',
-          color: 'var(--color-error-600)',
-          padding: '12px 20px',
-          borderRadius: '8px',
-          marginBottom: '20px',
-          border: '1px solid var(--color-error-100)',
-          fontFamily: 'var(--font-outfit)'
-        }}>
-          <Icon name="alert-circle" size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-          Errore: {error}
-        </div>
+        <Alert variant="destructive">
+          <AlertCircleIcon />
+          <AlertTitle>Errore</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {loading && works.length === 0 && (
-        <div className="empty-state">
-          <div style={{
-            width: '40px',
-            height: '40px',
-            border: '3px solid var(--color-gray-200)',
-            borderTopColor: 'var(--color-brand-500)',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 16px'
-          }}></div>
+        <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
+          <Loader2Icon className="size-10 animate-spin text-primary" />
           <p>Caricamento lavori...</p>
         </div>
       )}
 
-      <div className="works-table-container">
-        {!loading && filteredWorks.length === 0 ? (
-          <div className="empty-state">
-            <p>
-              <Icon name="file-text" size={48} className="icon-empty-state" />
-            </p>
-            <p>Nessun lavoro registrato</p>
-            <p>Inizia aggiungendo il tuo primo lavoro!</p>
-          </div>
-        ) : (
-          <table className="works-table">
-            <thead>
-              <tr>
-                <th>Descrizione</th>
-                <th>Data</th>
-                <th>Ore Lavoro</th>
-                <th>Importo</th>
-                <th>Azioni</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredWorks.map(work => (
-                <tr key={work.id}>
-                  <td>
-                    <div className="work-description">
-                      <div className="work-tipi-badges">
-                        {(Array.isArray(work.tipi) ? work.tipi : (work.tipo ? [work.tipo] : [])).map((tipo, idx) => (
-                          <span key={idx} className="work-type-badge">
+      <Card>
+        <CardContent className="p-0">
+          {!loading && filteredWorks.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-16 text-center text-muted-foreground">
+              <FileTextIcon className="size-12 opacity-50" />
+              <p className="font-medium text-foreground">Nessun lavoro registrato</p>
+              <p className="text-sm">Inizia aggiungendo il tuo primo lavoro.</p>
+            </div>
+          ) : (
+            <Table className="min-w-[640px]">
+              <TableHeader>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
+                  <TableHead className="pl-4 font-semibold">Descrizione</TableHead>
+                  <TableHead className="font-semibold">Data</TableHead>
+                  <TableHead className="font-semibold">Ore</TableHead>
+                  <TableHead className="text-right font-semibold">Importo</TableHead>
+                  <TableHead className="pr-4 text-right font-semibold">Azioni</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredWorks.map((work) => (
+                  <TableRow key={work.id}>
+                    <TableCell className="max-w-[240px] whitespace-normal align-top pl-4">
+                      <div className="flex flex-wrap gap-1">
+                        {(Array.isArray(work.tipi)
+                          ? work.tipi
+                          : work.tipo
+                            ? [work.tipo]
+                            : []
+                        ).map((tipo, idx) => (
+                          <Badge key={idx} variant="secondary">
                             {tipo}
-                          </span>
+                          </Badge>
                         ))}
                       </div>
-                      <span className="work-desc-text">{work.descrizione}</span>
-                    </div>
-                  </td>
-                  <td>{work.data}</td>
-                  <td>{work.durata || '0'}</td>
-                  <td className="importo-cell">
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
-                      {work.importo ? `${work.importo.toFixed(2)} €` : '-'}
-                      {work.usaPrezzoPersonalizzato && (
-                        <span 
-                          title="Prezzo personalizzato"
-                          style={{ 
-                            fontSize: '10px', 
-                            background: 'var(--color-warning-500)', 
-                            color: 'white', 
-                            padding: '2px 6px', 
-                            borderRadius: '4px',
-                            fontWeight: '600',
-                            fontFamily: 'var(--font-outfit)'
-                          }}
+                      <p className="mt-1 text-foreground">{work.descrizione}</p>
+                    </TableCell>
+                    <TableCell className="align-top whitespace-nowrap">{work.data}</TableCell>
+                    <TableCell className="align-top">{work.durata || '0'}</TableCell>
+                    <TableCell className="align-top text-right tabular-nums">
+                      <div className="flex items-center justify-end gap-1">
+                        {work.importo ? `${work.importo.toFixed(2)} €` : '-'}
+                        {work.usaPrezzoPersonalizzato && (
+                          <Badge
+                            variant="outline"
+                            className="h-5 px-1 text-[10px]"
+                            title="Prezzo personalizzato"
+                          >
+                            ★
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="align-top text-right pr-4">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon-sm"
+                          onClick={() => handleEdit(work)}
+                          title="Modifica"
                         >
-                          ⭐
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    <div className="action-buttons">
-                      <button 
-                        className="btn-edit"
-                        onClick={() => handleEdit(work)}
-                        title="Modifica"
-                      >
-                        <Icon name="edit" size={18} />
-                      </button>
-                      <button 
-                        className="btn-delete"
-                        onClick={() => handleDelete(work.id)}
-                        title="Elimina"
-                      >
-                        <Icon name="trash" size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+                          <PencilIcon />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon-sm"
+                            onClick={() => setDeleteTargetId(work.id)}
+                          title="Elimina"
+                        >
+                          <Trash2Icon />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
       {works.length > 0 && (
-        <div className="stats-summary">
-          <div className="stat-card">
-            <span className="stat-value">{works.length}</span>
-            <span className="stat-label">Lavori totali</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-value">
-              {totaleOre.toFixed(1)}
-            </span>
-            <span className="stat-label">Ore totali</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-value">
-              {new Set(works.map(w => w.data)).size}
-            </span>
-            <span className="stat-label">Giorni lavorati</span>
-          </div>
-          <div className="stat-card highlight">
-            <span className="stat-value">
-              {totaleImporto.toFixed(2)} €
-            </span>
-            <span className="stat-label">Importo totale</span>
-          </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="font-sans text-2xl font-bold">{works.length}</p>
+              <p className="text-xs text-muted-foreground">Lavori totali</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="font-sans text-2xl font-bold">{totaleOre.toFixed(1)}</p>
+              <p className="text-xs text-muted-foreground">Ore totali</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="font-sans text-2xl font-bold">
+                {new Set(works.map((w) => w.data)).size}
+              </p>
+              <p className="text-xs text-muted-foreground">Giorni lavorati</p>
+            </CardContent>
+          </Card>
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="p-4 text-center">
+              <p className="font-sans text-2xl font-bold text-primary">
+                {totaleImporto.toFixed(2)} €
+              </p>
+              <p className="text-xs text-muted-foreground">Importo totale</p>
+            </CardContent>
+          </Card>
         </div>
       )}
-    </div>
+
+      <ConfirmActionDialog
+        open={deleteTargetId != null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTargetId(null)
+        }}
+        title="Eliminare questo lavoro?"
+        description="L’operazione non può essere annullata."
+        confirmLabel="Elimina"
+        cancelLabel="Annulla"
+        onConfirm={async () => {
+          if (deleteTargetId == null) return false
+          const result = await deleteLavoro(deleteTargetId)
+          if (result.error) {
+            toastError("Errore durante l'eliminazione: " + result.error.message)
+            return false
+          }
+          toastSuccess('Lavoro eliminato')
+          return true
+        }}
+      />
+    </PageContainer>
   )
 }
 
 export default WorkLog
-

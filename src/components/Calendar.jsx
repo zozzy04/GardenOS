@@ -1,38 +1,44 @@
-import { useState, useEffect } from 'react'
-import Icon from './Icons'
+import { useState, useMemo } from 'react'
+import {
+  CalendarIcon,
+  CheckIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ClockIcon,
+} from 'lucide-react'
 import { useAuth } from '../hooks/useSupabase'
 import { useLavori } from '../hooks/useSupabase'
-import './Calendar.css'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { PageContainer, PageHeader, PageToolbar } from '@/components/page-layout'
 
 const Calendar = () => {
   const { user } = useAuth()
   const { lavori } = useLavori(user?.id)
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [predictions, setPredictions] = useState([])
 
-  useEffect(() => {
-    if (lavori) {
-      calculatePredictions(lavori)
-    }
-  }, [lavori])
-
-  // Calcola le previsioni future basate sui lavori precedenti
-  const calculatePredictions = (worksData) => {
+  const predictions = useMemo(() => {
+    const worksData = lavori
     if (!worksData || worksData.length === 0) {
-      setPredictions([])
-      return
+      return []
     }
 
     const predictionsMap = {}
     const now = new Date()
     now.setHours(0, 0, 0, 0)
 
-    // Raggruppa i lavori per tipo
     const worksByType = {}
-    if (!worksData) return
-    worksData.forEach(work => {
-      const tipi = Array.isArray(work.tipi) ? work.tipi : (work.tipo ? [work.tipo] : [])
-      tipi.forEach(tipo => {
+    worksData.forEach((work) => {
+      const tipi = Array.isArray(work.tipi) ? work.tipi : work.tipo ? [work.tipo] : []
+      tipi.forEach((tipo) => {
         if (!worksByType[tipo]) {
           worksByType[tipo] = []
         }
@@ -41,14 +47,11 @@ const Calendar = () => {
       })
     })
 
-    // Calcola la media dei giorni tra i lavori per ogni tipo
     Object.entries(worksByType).forEach(([tipo, dates]) => {
       if (dates.length < 2) return
 
-      // Ordina le date
       dates.sort((a, b) => a - b)
 
-      // Calcola gli intervalli tra lavori consecutivi
       const intervals = []
       for (let i = 1; i < dates.length; i++) {
         const diff = Math.floor((dates[i] - dates[i - 1]) / (1000 * 60 * 60 * 24))
@@ -59,44 +62,37 @@ const Calendar = () => {
 
       if (intervals.length === 0) return
 
-      // Calcola la media degli intervalli
       const avgInterval = Math.round(
         intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length
       )
 
-      // Trova l'ultima data per questo tipo
-      const lastDate = new Date(Math.max(...dates.map(d => d.getTime())))
+      const lastDate = new Date(Math.max(...dates.map((d) => d.getTime())))
       lastDate.setHours(0, 0, 0, 0)
 
-      // Calcola la prossima data prevista
       const nextDate = new Date(lastDate)
       nextDate.setDate(nextDate.getDate() + avgInterval)
 
-      // Aggiungi solo se la data prevista è nel futuro
       if (nextDate >= now) {
-        if (!predictionsMap[nextDate.toISOString().split('T')[0]]) {
-          predictionsMap[nextDate.toISOString().split('T')[0]] = []
+        const key = nextDate.toISOString().split('T')[0]
+        if (!predictionsMap[key]) {
+          predictionsMap[key] = []
         }
-        predictionsMap[nextDate.toISOString().split('T')[0]].push({
+        predictionsMap[key].push({
           tipo,
           avgInterval,
-          lastDate: lastDate.toLocaleDateString('it-IT')
+          lastDate: lastDate.toLocaleDateString('it-IT'),
         })
       }
     })
 
-    // Converti in array e ordina per data
-    const predictionsArray = Object.entries(predictionsMap)
+    return Object.entries(predictionsMap)
       .map(([date, tipi]) => ({
         date: new Date(date),
-        tipi
+        tipi,
       }))
       .sort((a, b) => a.date - b.date)
+  }, [lavori])
 
-    setPredictions(predictionsArray)
-  }
-
-  // Genera i giorni del mese
   const getDaysInMonth = () => {
     const year = currentMonth.getFullYear()
     const month = currentMonth.getMonth()
@@ -106,13 +102,11 @@ const Calendar = () => {
     const startingDayOfWeek = firstDay.getDay()
 
     const days = []
-    
-    // Aggiungi giorni vuoti all'inizio
+
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(null)
     }
 
-    // Aggiungi i giorni del mese
     for (let day = 1; day <= daysInMonth; day++) {
       days.push(new Date(year, month, day))
     }
@@ -120,32 +114,28 @@ const Calendar = () => {
     return days
   }
 
-  // Verifica se una data ha lavori
   const getWorksForDate = (date) => {
     if (!date || !lavori) return []
     const dateStr = date.toLocaleDateString('it-IT')
-    return lavori.filter(work => work.data === dateStr)
+    return lavori.filter((work) => work.data === dateStr)
   }
 
-  // Verifica se una data ha previsioni
   const getPredictionsForDate = (date) => {
     if (!date) return []
     const dateStr = date.toISOString().split('T')[0]
-    const prediction = predictions.find(p => {
+    const prediction = predictions.find((p) => {
       const predDateStr = p.date.toISOString().split('T')[0]
       return predDateStr === dateStr
     })
     return prediction ? prediction.tipi : []
   }
 
-  // Verifica se una data è oggi
   const isToday = (date) => {
     if (!date) return false
     const today = new Date()
     return date.toDateString() === today.toDateString()
   }
 
-  // Verifica se una data è passata
   const isPast = (date) => {
     if (!date) return false
     const today = new Date()
@@ -154,8 +144,20 @@ const Calendar = () => {
   }
 
   const days = getDaysInMonth()
-  const monthNames = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
-    'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre']
+  const monthNames = [
+    'Gennaio',
+    'Febbraio',
+    'Marzo',
+    'Aprile',
+    'Maggio',
+    'Giugno',
+    'Luglio',
+    'Agosto',
+    'Settembre',
+    'Ottobre',
+    'Novembre',
+    'Dicembre',
+  ]
 
   const prevMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))
@@ -170,131 +172,159 @@ const Calendar = () => {
   }
 
   return (
-    <div className="calendar-page">
-      <div className="calendar-header">
-        <h1>
-          <Icon name="clipboard" size={28} className="icon-inline" />
-          Calendario Lavori
-        </h1>
-        <div className="header-actions">
-          <button className="btn-secondary" onClick={goToToday}>
-            Oggi
-          </button>
-        </div>
-      </div>
+    <PageContainer>
+      <PageToolbar>
+        <PageHeader
+          title="Calendario lavori"
+          description="Lavori completati e date previste"
+          icon={<CalendarIcon className="size-7 text-primary" />}
+        />
+        <Button className="shrink-0" variant="outline" onClick={goToToday}>
+          Oggi
+        </Button>
+      </PageToolbar>
 
-      {/* Navigazione Mese */}
-      <div className="calendar-nav">
-        <button className="nav-month-btn" onClick={prevMonth}>
-          <Icon name="chevron-left" size={20} />
-        </button>
-        <h2 className="current-month">
-          {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-        </h2>
-        <button className="nav-month-btn" onClick={nextMonth}>
-          <Icon name="chevron-right" size={20} />
-        </button>
-      </div>
-
-      {/* Legenda */}
-      <div className="calendar-legend">
-        <div className="legend-item">
-          <div className="legend-color past"></div>
-          <span>Lavoro completato</span>
-        </div>
-        <div className="legend-item">
-          <div className="legend-color prediction"></div>
-          <span>Data prevista</span>
-        </div>
-        <div className="legend-item">
-          <div className="legend-color today"></div>
-          <span>Oggi</span>
-        </div>
-      </div>
-
-      {/* Calendario */}
-      <div className="calendar-container">
-        <div className="calendar-weekdays">
-          {['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'].map(day => (
-            <div key={day} className="weekday">{day}</div>
-          ))}
-        </div>
-        <div className="calendar-grid">
-          {days.map((date, index) => {
-            const dayWorks = getWorksForDate(date)
-            const dayPredictions = getPredictionsForDate(date)
-            const isTodayDate = isToday(date)
-            const isPastDate = isPast(date)
-
-            return (
-              <div
-                key={index}
-                className={`calendar-day ${!date ? 'empty' : ''} ${isTodayDate ? 'today' : ''} ${isPastDate ? 'past' : ''}`}
-              >
-                {date && (
-                  <>
-                    <div className="day-number">{date.getDate()}</div>
-                    <div className="day-events">
-                      {dayWorks.map((work, idx) => (
-                        <div key={idx} className="event-item completed" title={work.descrizione}>
-                          <Icon name="check" size={12} />
-                          <span>{(Array.isArray(work.tipi) ? work.tipi : (work.tipo ? [work.tipo] : [])).join(', ')}</span>
-                        </div>
-                      ))}
-                      {dayPredictions.map((pred, idx) => (
-                        <div key={idx} className="event-item prediction" title={`Previsto: ${pred.tipo} (ultimo: ${pred.lastDate})`}>
-                          <Icon name="clock" size={12} />
-                          <span>{pred.tipo}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Lista Previsioni Future */}
-      {predictions.length > 0 && (
-        <div className="predictions-section">
-          <h2>
-            <Icon name="clock" size={20} className="icon-inline" />
-            Prossime Date Previste
+      <Card>
+        <CardContent className="flex items-center justify-between gap-4 p-5 sm:p-6">
+          <Button variant="outline" size="icon" onClick={prevMonth} aria-label="Mese precedente">
+            <ChevronLeftIcon />
+          </Button>
+          <h2 className="font-sans text-lg font-semibold sm:text-xl">
+            {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
           </h2>
-          <div className="predictions-list">
+          <Button variant="outline" size="icon" onClick={nextMonth} aria-label="Mese successivo">
+            <ChevronRightIcon />
+          </Button>
+        </CardContent>
+      </Card>
+
+      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <span className="size-3 shrink-0 rounded-sm bg-secondary" aria-hidden />
+          <span className="text-foreground">Lavoro completato</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="size-3 shrink-0 rounded-sm bg-chart-4/85" aria-hidden />
+          <span className="text-foreground">Data prevista</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="size-3 shrink-0 rounded-sm border-2 border-primary" aria-hidden />
+          <span className="text-foreground">Oggi</span>
+        </div>
+      </div>
+
+      <Card>
+        <CardContent className="p-2 sm:p-4">
+          <div className="mb-2 grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground sm:text-sm">
+            {['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'].map((day) => (
+              <div key={day} className="py-2">
+                {day}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {days.map((date, index) => {
+              const dayWorks = getWorksForDate(date)
+              const dayPredictions = getPredictionsForDate(date)
+              const isTodayDate = isToday(date)
+              const isPastDate = isPast(date)
+
+              return (
+                <div
+                  key={index}
+                  className={cn(
+                    'min-h-[72px] rounded-lg border border-transparent p-1 sm:min-h-[100px] sm:p-2',
+                    !date && 'pointer-events-none opacity-0',
+                    isTodayDate && 'border-primary bg-primary/5',
+                    date && isPastDate && !isTodayDate && 'bg-muted/30'
+                  )}
+                >
+                  {date && (
+                    <>
+                      <div className="text-xs font-semibold sm:text-sm">{date.getDate()}</div>
+                      <div className="mt-1 space-y-0.5">
+                        {dayWorks.map((work, idx) => (
+                          <Badge
+                            key={idx}
+                            variant="secondary"
+                            className="h-auto w-full max-w-full justify-start gap-0.5 truncate rounded-md px-1.5 py-0.5 text-[10px] font-normal sm:text-xs"
+                            title={work.descrizione}
+                          >
+                            <CheckIcon className="size-3 shrink-0" />
+                            <span className="truncate">
+                              {(Array.isArray(work.tipi)
+                                ? work.tipi
+                                : work.tipo
+                                  ? [work.tipo]
+                                  : []
+                              ).join(', ')}
+                            </span>
+                          </Badge>
+                        ))}
+                        {dayPredictions.map((pred, idx) => (
+                          <Badge
+                            key={idx}
+                            variant="outline"
+                            className="h-auto w-full max-w-full justify-start gap-0.5 truncate border-chart-4/50 bg-chart-4/20 px-1.5 py-0.5 text-[10px] font-normal sm:text-xs"
+                            title={`Previsto: ${pred.tipo} (ultimo: ${pred.lastDate})`}
+                          >
+                            <ClockIcon className="size-3 shrink-0" />
+                            <span className="truncate">{pred.tipo}</span>
+                          </Badge>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {predictions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <ClockIcon className="size-5 text-primary" />
+              Prossime date previste
+            </CardTitle>
+            <CardDescription>Basate sulla media degli intervalli tra i lavori</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
             {predictions.slice(0, 10).map((prediction, idx) => (
-              <div key={idx} className="prediction-item">
-                <div className="prediction-date">
-                  {prediction.date.toLocaleDateString('it-IT', { 
-                    weekday: 'short', 
-                    day: 'numeric', 
-                    month: 'short' 
+              <div
+                key={idx}
+                className="rounded-lg border border-border bg-muted/40 p-3"
+              >
+                <div className="font-medium">
+                  {prediction.date.toLocaleDateString('it-IT', {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short',
                   })}
                 </div>
-                <div className="prediction-types">
+                <div className="mt-2 flex flex-wrap gap-1">
                   {prediction.tipi.map((pred, pIdx) => (
-                    <span key={pIdx} className="prediction-badge">
+                    <Badge key={pIdx} variant="secondary">
                       {pred.tipo}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
-                <div className="prediction-info">
+                <div className="mt-2 space-y-1 text-xs text-muted-foreground">
                   {prediction.tipi.map((pred, pIdx) => (
-                    <span key={pIdx} className="prediction-detail">
-                      Ultimo: {pred.lastDate} • Media: {pred.avgInterval} giorni
-                    </span>
+                    <div key={pIdx}>
+                      Ultimo: {pred.lastDate} · Media: {pred.avgInterval} giorni
+                    </div>
                   ))}
                 </div>
               </div>
             ))}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
-    </div>
+    </PageContainer>
   )
 }
 
 export default Calendar
-

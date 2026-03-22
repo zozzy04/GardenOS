@@ -1,136 +1,52 @@
-import { useState, useEffect } from 'react'
-import Icon from './Icons'
-import './Layout.css'
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
+import { AppSidebar } from '@/components/app-sidebar'
+import { SiteHeader } from '@/components/site-header'
 
-const Layout = ({ children, currentPage, onPageChange, user, onLogout }) => {
-  // Su mobile, la sidebar parte chiusa
-  const [sidebarOpen, setSidebarOpen] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth > 768
-    }
-    return true
-  })
+const PAGE_TITLES = {
+  dashboard: 'Dashboard',
+  lavori: 'Registro lavori',
+  calendario: 'Calendario',
+  spese: 'Spese condominiali',
+  fattura: 'Fattura',
+  meteo: 'Statistiche meteo',
+  approvazioni: 'Approvazioni condomini',
+  'mio-conto': 'Il mio conto',
+}
 
-  // Gestisce il resize della finestra
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth > 768) {
-        // Su desktop, mantieni aperta
-        setSidebarOpen(true)
-      } else {
-        // Su mobile, chiudi
-        setSidebarOpen(false)
-      }
-    }
-
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
-  const menuItems = [
-    { id: 'dashboard', icon: 'gauge', label: 'Dashboard' },
-    { id: 'lavori', icon: 'clipboard', label: 'Nuovo Lavoro' },
-    { id: 'calendario', icon: 'calendar', label: 'Calendario' },
-    { id: 'spese', icon: 'shopping-cart', label: 'Spese Condominiali' },
-    { id: 'fattura', icon: 'receipt', label: 'Fattura' },
-    { id: 'meteo', icon: 'cloud', label: 'Statistiche Meteo' }
-  ]
-
-  const handlePageChange = (pageId) => {
-    onPageChange(pageId)
-    // Chiudi sidebar su mobile dopo la selezione
-    if (window.innerWidth <= 768) {
-      setSidebarOpen(false)
-    }
-  }
+const Layout = ({
+  children,
+  currentPage,
+  onPageChange,
+  user,
+  onLogout,
+  sidebarVariant = 'admin',
+}) => {
+  const title = PAGE_TITLES[currentPage] || 'GardenOS'
 
   return (
-    <div className="layout">
-      {/* Overlay per mobile quando sidebar è aperta */}
-      {sidebarOpen && (
-        <div 
-          className="sidebar-overlay"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-      <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
-        <div className="sidebar-header">
-          <h2>
-            <Icon name="leaf" size={24} className="icon-inline" />
-            GardenOS
-          </h2>
-          <button 
-            className="sidebar-toggle"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            aria-label="Toggle sidebar"
-          >
-            {sidebarOpen ? <Icon name="chevron-left" size={16} /> : <Icon name="chevron-right" size={16} />}
-          </button>
-        </div>
-        <nav className="sidebar-nav">
-          {menuItems.map(item => (
-            <button
-              key={item.id}
-              className={`nav-item ${currentPage === item.id ? 'active' : ''}`}
-              onClick={() => handlePageChange(item.id)}
-            >
-              <span className="nav-icon">
-                <Icon name={item.icon} size={20} />
-              </span>
-              {sidebarOpen && <span>{item.label}</span>}
-            </button>
-          ))}
-        </nav>
-        {user && (
-          <div className={`sidebar-footer ${!sidebarOpen ? 'closed' : ''}`}>
-            {sidebarOpen && (
-              <>
-                <div className="user-info">
-                  <Icon name="user" size={16} />
-                  <span className="user-name">{user.username}</span>
-                </div>
-                <button
-                  className="btn-logout"
-                  onClick={onLogout}
-                  title="Logout"
-                >
-                  <Icon name="log-out" size={18} />
-                  <span>Logout</span>
-                </button>
-              </>
-            )}
-            {!sidebarOpen && (
-              <button
-                className="btn-logout-icon"
-                onClick={onLogout}
-                title="Logout"
-              >
-                <Icon name="log-out" size={20} />
-              </button>
-            )}
+    <SidebarProvider
+      style={{
+        '--sidebar-width': 'calc(var(--spacing) * 72)',
+        '--header-height': 'calc(var(--spacing) * 11)',
+      }}
+    >
+      <AppSidebar
+        currentPage={currentPage}
+        onPageChange={onPageChange}
+        user={user}
+        onLogout={onLogout}
+        navVariant={sidebarVariant}
+      />
+      <SidebarInset className="flex min-h-svh flex-col gap-2 overflow-hidden md:gap-3">
+        <SiteHeader title={title} />
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
+          <div className="@container/main mx-auto w-full min-w-0 max-w-[1600px] flex-1 px-4 pt-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-5 sm:pt-8 sm:pb-[max(1.5rem,env(safe-area-inset-bottom))] md:pt-10 md:pb-[max(1.75rem,env(safe-area-inset-bottom))] lg:px-8 lg:pt-10 lg:pb-[max(2.25rem,env(safe-area-inset-bottom))]">
+            {children}
           </div>
-        )}
-        
-        <div className={`sidebar-powered-by ${!sidebarOpen ? 'closed' : ''}`}>
-          {sidebarOpen && (
-            <p>Powered by <strong>Riccardo Zozzolotto</strong></p>
-          )}
         </div>
-      </aside>
-      <main className="main-content">
-        {/* Hamburger button per mobile */}
-        <button 
-          className="mobile-menu-toggle"
-          onClick={() => setSidebarOpen(true)}
-          aria-label="Apri menu"
-        >
-          <Icon name="menu" size={24} />
-        </button>
-        {children}
-      </main>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }
 
 export default Layout
-
