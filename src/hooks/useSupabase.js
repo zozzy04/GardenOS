@@ -26,13 +26,19 @@ export const useAuth = () => {
   }, [])
 
   const signUp = async (email, password, metadata = {}) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
+    const userMetadata = Object.fromEntries(
+      Object.entries(metadata).filter(
+        ([, v]) => v !== undefined && v !== null && v !== ''
+      )
+    )
+    const req = {
+      email: email.trim(),
       password,
-      options: {
-        data: metadata // Puoi passare username, nome, ecc.
-      }
-    })
+    }
+    if (Object.keys(userMetadata).length > 0) {
+      req.options = { data: userMetadata }
+    }
+    const { data, error } = await supabase.auth.signUp(req)
     return { data, error }
   }
 
@@ -59,7 +65,9 @@ export const useAuth = () => {
 }
 
 // Hook per i lavori
-export const useLavori = (userId) => {
+// skipUserFilter: per condomini approvati — RLS restituisce solo i lavori del gestore
+export const useLavori = (userId, options = {}) => {
+  const { skipUserFilter = false } = options
   const [lavori, setLavori] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -71,17 +79,17 @@ export const useLavori = (userId) => {
     }
 
     loadLavori()
-  }, [userId])
+  }, [userId, skipUserFilter])
 
   const loadLavori = async () => {
     try {
       setLoading(true)
       setError(null)
-      const { data, error: fetchError } = await supabase
-        .from('lavori')
-        .select('*')
-        .eq('user_id', userId)
-        .order('data', { ascending: false })
+      let q = supabase.from('lavori').select('*').order('data', { ascending: false })
+      if (!skipUserFilter) {
+        q = q.eq('user_id', userId)
+      }
+      const { data, error: fetchError } = await q
 
       if (fetchError) throw fetchError
       
@@ -295,7 +303,8 @@ export const useLocation = (userId) => {
 }
 
 // Hook per le spese condominiali
-export const useSpese = (userId) => {
+export const useSpese = (userId, options = {}) => {
+  const { skipUserFilter = false } = options
   const [spese, setSpese] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -307,17 +316,20 @@ export const useSpese = (userId) => {
     }
 
     loadSpese()
-  }, [userId])
+  }, [userId, skipUserFilter])
 
   const loadSpese = async () => {
     try {
       setLoading(true)
       setError(null)
-      const { data, error: fetchError } = await supabase
+      let q = supabase
         .from('spese_condominiali')
         .select('*')
-        .eq('user_id', userId)
         .order('data_acquisto', { ascending: false })
+      if (!skipUserFilter) {
+        q = q.eq('user_id', userId)
+      }
+      const { data, error: fetchError } = await q
 
       if (fetchError) throw fetchError
       
@@ -441,7 +453,7 @@ export const useSpese = (userId) => {
       const fileExt = file.name.split('.').pop()
       const fileName = `${userId}/${Date.now()}.${fileExt}`
       
-      const { data, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('scontrini')
         .upload(fileName, file, {
           cacheControl: '3600',

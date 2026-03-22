@@ -7,7 +7,9 @@ import { defineConfig } from 'vite'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
+// Consente .env con prefisso VITE_ (standard Vite) o NEXT_PUBLIC_ (copia-incolla da Next.js)
 export default defineConfig({
+  envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
