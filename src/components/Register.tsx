@@ -88,8 +88,6 @@ export function Register({
         return
       }
 
-      /* Nessun metadata su signUp: il trigger crea solo la riga profiles (senza UUID da metadata).
-         Famiglia e nome si salvano subito dopo con UPDATE (serve policy profiles_update_own_pending). */
       const { data, error: signUpError } = await signUp(email.trim(), password, {})
 
       if (signUpError) {
@@ -124,7 +122,7 @@ export function Register({
           setError(
             profileError.code === '42501' ||
               String(profileError.message || '').toLowerCase().includes('policy')
-              ? 'Account creato, ma non è permesso salvare famiglia/nome. Esegui in Supabase lo script `supabase-policy-profiles-pending-update.sql`, poi ricarica l’app: i dati in sospeso verranno applicati automaticamente.'
+              ? 'Account creato, ma non è permesso salvare famiglia/nome. Esegui in Supabase lo script `supabase-policy-profiles-pending-update.sql`, poi ricarica l\'app.'
               : profileError.message || 'Errore nel salvataggio della famiglia sul profilo.'
           )
           setLoading(false)
@@ -148,7 +146,7 @@ export function Register({
 
       if (data?.user && !data.session) {
         setInfo(
-          "Registrazione completata. Controlla la casella email per confermare l'indirizzo; al primo accesso verranno salvati famiglia e nome. Lo stato resterà «in attesa» fino all'approvazione del gestore."
+          "Registrazione completata. Controlla la casella email per confermare l'indirizzo; al primo accesso verranno salvati famiglia e nome."
         )
       } else {
         setInfo(
@@ -165,29 +163,32 @@ export function Register({
 
   return (
     <AuthShell className={cn('gap-6', className)}>
-      <div className="w-full max-w-[min(100%,400px)] sm:max-w-sm">
+      <div className="w-full max-w-[min(100%,420px)] sm:max-w-[400px]">
         <div className="flex flex-col gap-5 sm:gap-6">
-          <Card className="border-border/80 shadow-lg shadow-primary/5 dark:shadow-none">
-            <CardHeader className="space-y-3 pb-4">
+          <Card className="border-border/50 shadow-xl shadow-primary/5 dark:border-border/40 dark:shadow-none">
+            <CardHeader className="space-y-4 pb-2">
               <div className="flex justify-center">
-                <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
-                  <Leaf className="size-8" strokeWidth={2.25} />
+                <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
+                  <Leaf className="size-7" strokeWidth={2.25} />
                 </div>
               </div>
-              <CardTitle className="text-center font-sans text-2xl font-semibold tracking-tight">
-                Registrati
-              </CardTitle>
-              <CardDescription className="text-balance text-center text-base">
-                Condominio — richiesta accesso a GardenOS. Se hai già un account, torna al login
-                per accedere (la registrazione serve solo la prima volta).
-              </CardDescription>
+              <div className="space-y-1.5">
+                <CardTitle className="text-center font-heading text-2xl font-semibold tracking-tight">
+                  Registrati
+                </CardTitle>
+                <CardDescription className="text-balance text-center text-[0.8125rem] leading-relaxed">
+                  Richiesta accesso condominio a GardenOS
+                </CardDescription>
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               <form onSubmit={handleSubmit}>
                 <FieldGroup>
                   {error ? <FieldError>{error}</FieldError> : null}
                   {info ? (
-                    <FieldDescription className="text-foreground">{info}</FieldDescription>
+                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-foreground">
+                      {info}
+                    </div>
                   ) : null}
                   <Field>
                     <FieldLabel htmlFor="reg-email">Email</FieldLabel>
@@ -201,7 +202,7 @@ export function Register({
                       required
                       autoComplete="email"
                       disabled={loading}
-                      className="h-11 min-h-11 sm:h-10"
+                      className="h-11 sm:h-10"
                     />
                   </Field>
                   <Field>
@@ -216,11 +217,11 @@ export function Register({
                       autoComplete="new-password"
                       disabled={loading}
                       minLength={6}
-                      className="h-11 min-h-11 sm:h-10"
+                      className="h-11 sm:h-10"
                     />
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="reg-name">Nome visualizzato (opzionale)</FieldLabel>
+                    <FieldLabel htmlFor="reg-name">Nome (opzionale)</FieldLabel>
                     <Input
                       id="reg-name"
                       name="displayName"
@@ -229,6 +230,7 @@ export function Register({
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                       disabled={loading}
+                      className="h-11 sm:h-10"
                     />
                   </Field>
                   <Field>
@@ -239,7 +241,7 @@ export function Register({
                       disabled={loading || loadingFamiglie || famiglie.length === 0}
                       required
                     >
-                      <SelectTrigger className="h-11 w-full min-h-11 sm:h-10">
+                      <SelectTrigger className="h-11 w-full sm:h-10">
                         <SelectValue placeholder="Seleziona la tua famiglia" />
                       </SelectTrigger>
                       <SelectContent>
@@ -257,7 +259,7 @@ export function Register({
                   <Field>
                     <Button
                       type="submit"
-                      className="mt-1 h-11 w-full text-base sm:h-10 sm:text-sm"
+                      className="mt-1 h-11 w-full text-[0.9375rem] font-medium sm:h-10 sm:text-sm"
                       disabled={loading}
                     >
                       {loading ? (
@@ -274,18 +276,20 @@ export function Register({
               </form>
             </CardContent>
           </Card>
+
           <p className="text-center text-sm text-muted-foreground">
             <button
               type="button"
-              className="font-medium text-primary underline underline-offset-2"
+              className="font-medium text-primary underline-offset-2 hover:underline"
               onClick={onBack}
             >
               Torna al login
             </button>
           </p>
-          <FieldDescription className="text-balance text-center text-xs sm:text-sm">
+
+          <FieldDescription className="text-balance text-center text-[0.6875rem] tracking-wide text-muted-foreground/60">
             Powered by{' '}
-            <span className="font-medium text-foreground">Riccardo Zozzolotto</span>
+            <span className="font-medium text-muted-foreground/80">Riccardo Zozzolotto</span>
           </FieldDescription>
         </div>
       </div>

@@ -1,8 +1,12 @@
 import {
+  BanknoteIcon,
+  BriefcaseIcon,
+  ClockIcon,
+  TrendingUpIcon,
+} from 'lucide-react'
+import {
   Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+  CardContent,
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -17,45 +21,67 @@ export function DashboardSectionCards({
   const cards = [
     {
       key: 'earnings',
-      description: 'Guadagno totale',
+      label: 'Guadagno totale',
       value: `${totalEarnings.toFixed(2)} €`,
+      icon: BanknoteIcon,
+      accent: 'text-emerald-600 dark:text-emerald-400',
+      bg: 'bg-emerald-500/10 dark:bg-emerald-500/15',
     },
     {
       key: 'works',
-      description: 'Lavori registrati',
+      label: 'Lavori registrati',
       value: String(totalWorks),
+      icon: BriefcaseIcon,
+      accent: 'text-sky-600 dark:text-sky-400',
+      bg: 'bg-sky-500/10 dark:bg-sky-500/15',
     },
     {
       key: 'hours',
-      description: 'Ore totali',
+      label: 'Ore totali',
       value: totalHours.toFixed(1),
+      icon: ClockIcon,
+      accent: 'text-amber-600 dark:text-amber-400',
+      bg: 'bg-amber-500/10 dark:bg-amber-500/15',
     },
     {
       key: 'avg',
-      description: 'Media ore / lavoro',
+      label: 'Media ore / lavoro',
       value: `${avgHoursPerWork.toFixed(1)}h`,
+      icon: TrendingUpIcon,
+      accent: 'text-violet-600 dark:text-violet-400',
+      bg: 'bg-violet-500/10 dark:bg-violet-500/15',
     },
   ]
 
   return (
-    <div className="grid w-full min-w-0 grid-cols-1 gap-5 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4 dark:*:data-[slot=card]:bg-card">
-      {cards.map((c) => (
-        <Card
-          key={c.key}
-          className="@container/card flex h-full min-w-0 flex-col py-5 shadow-sm"
-        >
-          <CardHeader className="shrink-0 gap-1.5">
-            <CardDescription>{c.description}</CardDescription>
-            {loading ? (
-              <Skeleton className="mt-1 h-9 w-28 @[250px]/card:h-10 @[250px]/card:w-32" />
-            ) : (
-              <CardTitle className="font-sans text-2xl font-semibold tabular-nums tracking-tight @[250px]/card:text-3xl">
-                {c.value}
-              </CardTitle>
-            )}
-          </CardHeader>
-        </Card>
-      ))}
+    <div className="grid w-full min-w-0 grid-cols-2 gap-3 sm:gap-4 @xl/main:grid-cols-2 @3xl/main:grid-cols-4">
+      {cards.map((c) => {
+        const Icon = c.icon
+        return (
+          <Card
+            key={c.key}
+            className="relative overflow-hidden border-border/60 shadow-sm transition-shadow hover:shadow-md"
+          >
+            <CardContent className="flex flex-col gap-3 p-4 sm:p-5">
+              <div className={`flex size-9 items-center justify-center rounded-lg ${c.bg} sm:size-10`}>
+                <Icon className={`size-[1.125rem] sm:size-5 ${c.accent}`} strokeWidth={1.75} />
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-xs font-medium text-muted-foreground sm:text-[0.8125rem]">
+                  {c.label}
+                </p>
+                {loading ? (
+                  <Skeleton className="mt-1 h-7 w-20 sm:h-8 sm:w-24" />
+                ) : (
+                  <p className="font-heading text-xl font-semibold tabular-nums tracking-tight text-foreground sm:text-2xl">
+                    {c.value}
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })}
     </div>
   )
 }

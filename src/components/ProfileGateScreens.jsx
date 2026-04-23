@@ -11,7 +11,7 @@ import {
 
 function GateCard({ icon, title, description, onLogout }) {
   return (
-    <Card className="w-full max-w-md border-border/80 shadow-lg shadow-primary/5 dark:shadow-none">
+    <Card className="w-full max-w-md border-border/50 shadow-xl shadow-primary/5 dark:shadow-none">
       <CardHeader className="space-y-3 text-center sm:space-y-4">
         {icon ? (
           <div className="flex justify-center">
@@ -20,7 +20,7 @@ function GateCard({ icon, title, description, onLogout }) {
             </div>
           </div>
         ) : null}
-        <CardTitle className="font-sans text-xl font-semibold tracking-tight sm:text-2xl">
+        <CardTitle className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
           {title}
         </CardTitle>
         <CardDescription className="text-balance text-base leading-relaxed">

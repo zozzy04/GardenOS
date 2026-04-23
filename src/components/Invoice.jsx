@@ -114,12 +114,12 @@ const Invoice = () => {
       <PageHeader
         title="Genera fattura"
         description="Seleziona il periodo e genera il riepilogo"
-        icon={<FileTextIcon className="size-7 text-primary" />}
+        icon={<FileTextIcon className="size-6 text-primary" />}
       />
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Periodo</CardTitle>
+          <CardTitle className="font-heading text-lg">Periodo</CardTitle>
           <CardDescription>Data inizio e fine inclusiva</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-end sm:gap-6">
@@ -196,7 +196,7 @@ const Invoice = () => {
           {filteredWorks.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Dettaglio lavori</CardTitle>
+                <CardTitle className="font-heading text-lg">Dettaglio lavori</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {filteredWorks.map((work) => (
@@ -240,7 +240,7 @@ const Invoice = () => {
           {filteredSpese.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Spese condominiali</CardTitle>
+                <CardTitle className="font-heading text-lg">Spese condominiali</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {filteredSpese.map((spesa) => (
@@ -272,7 +272,7 @@ const Invoice = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Divisione per millesimi</CardTitle>
+              <CardTitle className="font-heading text-lg">Divisione per millesimi</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="-mx-2 max-w-[calc(100vw-2rem)] overflow-x-auto px-2 sm:mx-0 sm:max-w-none sm:overflow-visible sm:px-0 md:max-w-none">
