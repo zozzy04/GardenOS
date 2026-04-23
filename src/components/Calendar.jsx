@@ -177,7 +177,7 @@ const Calendar = () => {
         <PageHeader
           title="Calendario lavori"
           description="Lavori completati e date previste"
-          icon={<CalendarIcon className="size-7 text-primary" />}
+          icon={<CalendarIcon className="size-6 text-primary" />}
         />
         <Button className="shrink-0" variant="outline" onClick={goToToday}>
           Oggi
@@ -189,7 +189,7 @@ const Calendar = () => {
           <Button variant="outline" size="icon" onClick={prevMonth} aria-label="Mese precedente">
             <ChevronLeftIcon />
           </Button>
-          <h2 className="font-sans text-lg font-semibold sm:text-xl">
+          <h2 className="font-heading text-lg font-semibold sm:text-xl">
             {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
           </h2>
           <Button variant="outline" size="icon" onClick={nextMonth} aria-label="Mese successivo">
@@ -285,7 +285,7 @@ const Calendar = () => {
       {predictions.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
+            <CardTitle className="flex items-center gap-2 font-heading text-lg">
               <ClockIcon className="size-5 text-primary" />
               Prossime date previste
             </CardTitle>

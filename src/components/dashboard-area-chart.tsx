@@ -75,7 +75,7 @@ export function DashboardAreaChart({ data }: { data: Point[] }) {
   return (
     <Card className="@container/card w-full min-w-0 max-w-full py-5 shadow-sm">
       <CardHeader className="shrink-0 gap-2 pb-3 md:gap-2 md:pb-4">
-        <CardTitle className="font-sans text-base font-semibold md:text-[1.05rem]">
+        <CardTitle className="font-heading text-base font-semibold md:text-[1.05rem]">
           Attività giornaliere
         </CardTitle>
         <CardDescription>

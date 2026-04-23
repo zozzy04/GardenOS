@@ -192,7 +192,7 @@ const SpeseCondominiali = () => {
         <PageHeader
           title="Spese condominiali"
           description="Registra spese e scontrini"
-          icon={<ShoppingCartIcon className="size-7 text-primary" />}
+          icon={<ShoppingCartIcon className="size-6 text-primary" />}
         />
         <Button
           className="shrink-0"
@@ -437,7 +437,7 @@ const SpeseCondominiali = () => {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
           <Card className="border-primary/30 bg-primary/5">
             <CardContent className="p-4 text-center">
-              <p className="font-sans text-2xl font-bold text-primary">
+              <p className="font-heading text-2xl font-bold text-primary">
                 {totaleSpese.toFixed(2)} €
               </p>
               <p className="text-xs text-muted-foreground">Totale spese</p>
@@ -445,7 +445,7 @@ const SpeseCondominiali = () => {
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="font-sans text-2xl font-bold">{spese.length}</p>
+              <p className="font-heading text-2xl font-bold">{spese.length}</p>
               <p className="text-xs text-muted-foreground">Spese totali</p>
             </CardContent>
           </Card>

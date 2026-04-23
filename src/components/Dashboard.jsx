@@ -16,6 +16,13 @@ function parseItDate(s) {
   return Number.isNaN(d.getTime()) ? null : d
 }
 
+function getGreeting() {
+  const h = new Date().getHours()
+  if (h < 12) return 'Buongiorno'
+  if (h < 18) return 'Buon pomeriggio'
+  return 'Buonasera'
+}
+
 const Dashboard = () => {
   const { user } = useAuth()
   const { lavori, loading } = useLavori(user?.id)
@@ -23,11 +30,7 @@ const Dashboard = () => {
   const stats = useMemo(() => {
     const worksData = lavori
     if (!worksData || worksData.length === 0) {
-      return {
-        totalWorks: 0,
-        totalHours: 0,
-        totalEarnings: 0,
-      }
+      return { totalWorks: 0, totalHours: 0, totalEarnings: 0 }
     }
     return {
       totalWorks: worksData.length,
@@ -59,15 +62,27 @@ const Dashboard = () => {
     return Array.from(map.values())
   }, [lavori])
 
+  const username = user?.user_metadata?.username || user?.email?.split('@')[0] || 'Utente'
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-8 md:gap-10">
+    <div className="flex w-full min-w-0 flex-col gap-6 md:gap-8">
+      {/* Hero greeting */}
+      <div className="space-y-1">
+        <h2 className="font-heading text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+          {getGreeting()}, {username}
+        </h2>
+        <p className="text-sm text-muted-foreground sm:text-base">
+          Ecco il riepilogo della tua attività
+        </p>
+      </div>
+
       <DashboardSectionCards
         totalEarnings={stats.totalEarnings}
         totalWorks={stats.totalWorks}
         totalHours={stats.totalHours}
         loading={loading}
       />
+
       <DashboardAreaChart data={chartDailyData} />
     </div>
   )

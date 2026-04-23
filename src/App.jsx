@@ -1,17 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/Layout'
 import { FullScreenLoader } from './components/full-screen-loader'
 import { AuthShell } from '@/components/auth-shell'
 import Login from './components/Login'
 import { Register } from './components/Register'
-import Dashboard from './components/Dashboard'
-import WorkLog from './components/WorkLog'
-import Calendar from './components/Calendar'
-import WeatherStats from './components/WeatherStats'
-import Invoice from './components/Invoice'
-import SpeseCondominiali from './components/SpeseCondominiali'
-import MioConto from './components/MioConto'
-import { AdminApprovals } from './components/AdminApprovals'
 import ConfigError from './components/ConfigError'
 import {
   ProfileMissing,
@@ -22,8 +15,25 @@ import { useAuth } from './hooks/useSupabase'
 import { useProfile } from './hooks/useProfile'
 import { Button } from '@/components/ui/button'
 
+// Lazy-loaded page components
+const Dashboard = lazy(() => import('./components/Dashboard'))
+const WorkLog = lazy(() => import('./components/WorkLog'))
+const Calendar = lazy(() => import('./components/Calendar'))
+const SpeseCondominiali = lazy(() => import('./components/SpeseCondominiali'))
+const Invoice = lazy(() => import('./components/Invoice'))
+const WeatherStats = lazy(() => import('./components/WeatherStats'))
+const AdminApprovals = lazy(() => import('./components/AdminApprovals').then(m => ({ default: m.AdminApprovals })))
+const MioConto = lazy(() => import('./components/MioConto'))
+
+function PageLoader() {
+  return (
+    <div className="flex flex-1 items-center justify-center py-20">
+      <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-primary/20 border-t-primary" />
+    </div>
+  )
+}
+
 function App() {
-  const [currentPage, setCurrentPage] = useState('dashboard')
   const [authView, setAuthView] = useState('login')
   const { user, loading: authLoading, signOut } = useAuth()
   const { profile, famiglia, loading: profileLoading, error: profileError } = useProfile(user)
@@ -31,13 +41,11 @@ function App() {
   useEffect(() => {
     if (!user) {
       setAuthView('login')
-      setCurrentPage('dashboard')
     }
   }, [user])
 
   const handleLogout = async () => {
     await signOut()
-    setCurrentPage('dashboard')
   }
 
   if (authLoading) {
@@ -94,57 +102,37 @@ function App() {
       'Utente',
   }
 
-  if (isApprovedAdmin) {
-    const renderAdminPage = () => {
-      switch (currentPage) {
-        case 'dashboard':
-          return <Dashboard />
-        case 'lavori':
-          return <WorkLog />
-        case 'calendario':
-          return <Calendar />
-        case 'spese':
-          return <SpeseCondominiali />
-        case 'fattura':
-          return <Invoice />
-        case 'meteo':
-          return <WeatherStats />
-        case 'approvazioni':
-          return <AdminApprovals />
-        default:
-          return <Dashboard />
-      }
-    }
-
-    return (
-      <>
-        <ConfigError />
-        <Layout
-          currentPage={currentPage}
-          onPageChange={setCurrentPage}
-          user={userData}
-          onLogout={handleLogout}
-          sidebarVariant="admin"
-        >
-          {renderAdminPage()}
-        </Layout>
-      </>
-    )
-  }
-
   return (
-    <>
+    <BrowserRouter>
       <ConfigError />
       <Layout
-        currentPage="mio-conto"
-        onPageChange={setCurrentPage}
         user={userData}
         onLogout={handleLogout}
-        sidebarVariant="condomino"
+        sidebarVariant={isApprovedAdmin ? 'admin' : 'condomino'}
       >
-        <MioConto highlightFamigliaNome={famiglia?.nome ?? null} />
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            {isApprovedAdmin ? (
+              <>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/lavori" element={<WorkLog />} />
+                <Route path="/calendario" element={<Calendar />} />
+                <Route path="/spese" element={<SpeseCondominiali />} />
+                <Route path="/fattura" element={<Invoice />} />
+                <Route path="/meteo" element={<WeatherStats />} />
+                <Route path="/approvazioni" element={<AdminApprovals />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </>
+            ) : (
+              <>
+                <Route path="/" element={<MioConto highlightFamigliaNome={famiglia?.nome ?? null} />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </>
+            )}
+          </Routes>
+        </Suspense>
       </Layout>
-    </>
+    </BrowserRouter>
   )
 }
 

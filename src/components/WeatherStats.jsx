@@ -208,7 +208,7 @@ const WeatherStats = () => {
         <PageHeader
           title="Statistiche meteo"
           description="OpenWeather per il tuo giardino"
-          icon={<CloudIcon className="size-7 text-primary" />}
+          icon={<CloudIcon className="size-6 text-primary" />}
         />
         <Button className="shrink-0" variant="outline" onClick={fetchWeather} disabled={loading}>
           <RefreshCwIcon />
@@ -226,7 +226,7 @@ const WeatherStats = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
+          <CardTitle className="flex items-center gap-2 font-heading text-lg">
             <MapPinIcon className="size-5 text-primary" />
             Posizione giardino
           </CardTitle>

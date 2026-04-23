@@ -32,7 +32,6 @@ export type LoginFormProps = {
   onGoRegister?: () => void
 }
 
-/** Layout e componenti come blocco shadcn login-01; copy e logica GardenOS. */
 export function LoginForm({
   email,
   password,
@@ -46,23 +45,25 @@ export function LoginForm({
 }: LoginFormProps) {
   return (
     <AuthShell className={cn("gap-6", className)}>
-      <div className="w-full max-w-[min(100%,380px)] sm:max-w-sm">
+      <div className="w-full max-w-[min(100%,400px)] sm:max-w-sm">
         <div className="flex flex-col gap-5 sm:gap-6">
-          <Card className="border-border/80 shadow-lg shadow-primary/5 dark:shadow-none">
-            <CardHeader className="space-y-3 pb-4">
+          <Card className="border-border/50 shadow-xl shadow-primary/5 dark:border-border/40 dark:shadow-none">
+            <CardHeader className="space-y-4 pb-2">
               <div className="flex justify-center">
-                <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
-                  <Leaf className="size-8" strokeWidth={2.25} />
+                <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
+                  <Leaf className="size-7" strokeWidth={2.25} />
                 </div>
               </div>
-              <CardTitle className="text-center font-sans text-2xl font-semibold tracking-tight">
-                GardenOS
-              </CardTitle>
-              <CardDescription className="text-center text-base">
-                Accedi al tuo account
-              </CardDescription>
+              <div className="space-y-1.5">
+                <CardTitle className="text-center font-heading text-2xl font-semibold tracking-tight">
+                  GardenOS
+                </CardTitle>
+                <CardDescription className="text-center text-[0.9375rem]">
+                  Accedi al tuo account
+                </CardDescription>
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               <form onSubmit={onSubmit}>
                 <FieldGroup>
                   {error ? <FieldError>{error}</FieldError> : null}
@@ -78,7 +79,7 @@ export function LoginForm({
                       required
                       autoComplete="email"
                       disabled={loading}
-                      className="h-11 min-h-11 sm:h-10"
+                      className="h-11 sm:h-10"
                     />
                   </Field>
                   <Field>
@@ -92,11 +93,15 @@ export function LoginForm({
                       required
                       autoComplete="current-password"
                       disabled={loading}
-                      className="h-11 min-h-11 sm:h-10"
+                      className="h-11 sm:h-10"
                     />
                   </Field>
                   <Field>
-                    <Button type="submit" className="w-full" disabled={loading}>
+                    <Button
+                      type="submit"
+                      className="mt-1 h-11 w-full text-[0.9375rem] font-medium sm:h-10 sm:text-sm"
+                      disabled={loading}
+                    >
                       {loading ? (
                         <>
                           <Loader2Icon className="animate-spin" />
@@ -111,21 +116,23 @@ export function LoginForm({
               </form>
             </CardContent>
           </Card>
+
           {onGoRegister ? (
             <p className="text-center text-sm text-muted-foreground">
-              Non hai un account?{' '}
+              Non hai un account?{" "}
               <button
                 type="button"
-                className="font-medium text-primary underline underline-offset-2"
+                className="font-medium text-primary underline-offset-2 hover:underline"
                 onClick={onGoRegister}
               >
                 Registrati
               </button>
             </p>
           ) : null}
-          <FieldDescription className="text-balance text-center text-xs sm:text-sm">
+
+          <FieldDescription className="text-balance text-center text-[0.6875rem] tracking-wide text-muted-foreground/60">
             Powered by{" "}
-            <span className="font-medium text-foreground">Riccardo Zozzolotto</span>
+            <span className="font-medium text-muted-foreground/80">Riccardo Zozzolotto</span>
           </FieldDescription>
         </div>
       </div>
