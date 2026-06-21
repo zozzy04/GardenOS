@@ -487,3 +487,93 @@ export const useSpese = (userId, options = {}) => {
   }
 }
 
+// Hook per le fatture emesse
+export const useFatture = () => {
+  const [fatture, setFatture] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    loadFatture()
+  }, [])
+
+  const loadFatture = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const { data, error: fetchError } = await supabase
+        .from('fatture')
+        .select('*')
+        .order('period_end', { ascending: false })
+      if (fetchError) throw fetchError
+      setFatture(data || [])
+    } catch (err) {
+      console.error('Errore nel caricamento fatture:', err)
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const createFattura = async (fatturaData) => {
+    try {
+      setError(null)
+      const { data, error: insertError } = await supabase
+        .from('fatture')
+        .insert(fatturaData)
+        .select()
+        .single()
+      if (insertError) throw insertError
+      await loadFatture()
+      return { data, error: null }
+    } catch (err) {
+      console.error('Errore nella creazione fattura:', err)
+      setError(err.message)
+      return { data: null, error: err }
+    }
+  }
+
+  const deleteFattura = async (id) => {
+    try {
+      setError(null)
+      const { error: deleteError } = await supabase
+        .from('fatture')
+        .delete()
+        .eq('id', id)
+      if (deleteError) throw deleteError
+      await loadFatture()
+      return { error: null }
+    } catch (err) {
+      console.error("Errore nell'eliminazione fattura:", err)
+      setError(err.message)
+      return { error: err }
+    }
+  }
+
+  const getLastFatturaPeriodEnd = async () => {
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('fatture')
+        .select('period_end')
+        .order('period_end', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (fetchError) throw fetchError
+      return data?.period_end || null
+    } catch (err) {
+      console.error("Errore nel recupero ultima fattura:", err)
+      return null
+    }
+  }
+
+  return {
+    fatture,
+    loading,
+    error,
+    createFattura,
+    deleteFattura,
+    getLastFatturaPeriodEnd,
+    refresh: loadFatture,
+  }
+}
+
