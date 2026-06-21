@@ -32,18 +32,21 @@ export function normalizeFamiglieRows(rows) {
  * @param {{ prezzo?: number }[]} speseList
  * @param {{ nome: string, millesimi: number }[]} famiglieOrdered
  * @param {{ start: string, end: string }} dateRange
+ * @param {{ label: string, prezzo: number }[]} [extraVoci]
  */
-export function buildInvoiceData(worksList, speseList, famiglieOrdered, dateRange) {
+export function buildInvoiceData(worksList, speseList, famiglieOrdered, dateRange, extraVoci = []) {
   const wl = worksList || []
   const sl = speseList || []
+  const ev = extraVoci || []
 
-  if (wl.length === 0 && sl.length === 0) {
+  if (wl.length === 0 && sl.length === 0 && ev.length === 0) {
     return null
   }
 
   const totaleLavori = wl.reduce((sum, w) => sum + (w.importo || 0), 0)
   const totaleSpese = sl.reduce((sum, s) => sum + (s.prezzo || 0), 0)
-  const totale = totaleLavori + totaleSpese
+  const totaleExtra = ev.reduce((sum, v) => sum + (v.prezzo || 0), 0)
+  const totale = totaleLavori + totaleSpese + totaleExtra
   const totaleOre = wl.reduce((sum, w) => sum + (parseFloat(w.durata) || 0), 0)
 
   const famiglie = normalizeFamiglieRows(famiglieOrdered)
@@ -82,9 +85,11 @@ export function buildInvoiceData(worksList, speseList, famiglieOrdered, dateRang
     totale,
     totaleLavori,
     totaleSpese,
+    totaleExtra,
     totaleOre,
     numeroLavori: wl.length,
     numeroSpese: sl.length,
+    extraVoci: ev,
     divisioneMillesimi,
     dateRange,
   }

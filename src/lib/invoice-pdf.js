@@ -14,7 +14,9 @@ export function formatInvoiceDate(dateString) {
  * @param {object} params.invoiceData — output di buildInvoiceData
  * @param {object[]} params.filteredWorks
  * @param {object[]} params.filteredSpese
+ * @param {{ label: string, prezzo: number }[]} [params.extraVoci]
  * @param {string | null} [params.highlightFamigliaNome]
+ * @param {boolean} [params.isCondominoView] — nasconde importo per lavoro e badge prezzo personalizzato
  * @param {string} [params.docTitle]
  * @param {string} [params.fileNamePrefix]
  */
@@ -22,7 +24,9 @@ export async function exportInvoiceToPdf({
   invoiceData,
   filteredWorks,
   filteredSpese,
+  extraVoci = [],
   highlightFamigliaNome = null,
+  isCondominoView = false,
   docTitle = 'FATTURA LAVORI GIARDINO',
   fileNamePrefix = 'fattura-giardino',
 }) {
@@ -90,6 +94,12 @@ export async function exportInvoiceToPdf({
       )
       yPosition += 6
     }
+    const ev = extraVoci || invoiceData.extraVoci || []
+    if (ev.length > 0) {
+      const totExt = ev.reduce((s, v) => s + (v.prezzo || 0), 0)
+      doc.text(`Costi extra: ${ev.length} (${totExt.toFixed(2)} €)`, margin + 5, yPosition)
+      yPosition += 6
+    }
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(11)
     doc.setTextColor(37, 99, 235)
@@ -152,7 +162,7 @@ export async function exportInvoiceToPdf({
         doc.setTextColor(0, 0, 0)
         doc.text(tipiText, margin + 75, currentY)
 
-        if (work.usaPrezzoPersonalizzato) {
+        if (work.usaPrezzoPersonalizzato && !isCondominoView) {
           doc.setFontSize(7)
           doc.setFont('helvetica', 'bold')
           doc.setTextColor(245, 158, 11)
@@ -182,15 +192,17 @@ export async function exportInvoiceToPdf({
         doc.setTextColor(0, 0, 0)
         doc.text(String(work.durata || '0'), margin + 20, currentY)
 
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(37, 99, 235)
-        doc.text('Importo:', margin + 40, currentY)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(34, 197, 94)
-        const importo = parseFloat(work.importo || 0)
-        doc.text(`${importo.toFixed(2)} €`, margin + 60, currentY)
-        doc.setTextColor(0, 0, 0)
-        doc.setFont('helvetica', 'normal')
+        if (!isCondominoView) {
+          doc.setFont('helvetica', 'bold')
+          doc.setTextColor(37, 99, 235)
+          doc.text('Importo:', margin + 40, currentY)
+          doc.setFont('helvetica', 'bold')
+          doc.setTextColor(34, 197, 94)
+          const importo = parseFloat(work.importo || 0)
+          doc.text(`${importo.toFixed(2)} €`, margin + 60, currentY)
+          doc.setTextColor(0, 0, 0)
+          doc.setFont('helvetica', 'normal')
+        }
 
         if (hasNotes) {
           currentY += 6
@@ -345,6 +357,47 @@ export async function exportInvoiceToPdf({
       yPosition += 10
     }
 
+    const pdfExtraVoci = extraVoci?.length ? extraVoci : (invoiceData.extraVoci || [])
+    if (pdfExtraVoci.length > 0) {
+      if (yPosition > pageHeight - 60) {
+        doc.addPage()
+        yPosition = 20
+      }
+
+      doc.setFontSize(15)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(37, 99, 235)
+      doc.text('Costi Extra', margin, yPosition)
+      doc.setTextColor(0, 0, 0)
+      doc.setDrawColor(37, 99, 235)
+      doc.setLineWidth(0.5)
+      doc.line(margin, yPosition + 2, margin + 40, yPosition + 2)
+      yPosition += 12
+
+      pdfExtraVoci.forEach((voce, index) => {
+        if (yPosition > pageHeight - 40) {
+          doc.addPage()
+          yPosition = 20
+        }
+        if (index % 2 === 0) {
+          doc.setFillColor(249, 250, 251)
+          doc.rect(margin, yPosition - 3, pageWidth - margin * 2, 10, 'F')
+        }
+        doc.setFontSize(10)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(0, 0, 0)
+        doc.text(String(voce.label || ''), margin + 5, yPosition)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(34, 197, 94)
+        doc.text(`${parseFloat(voce.prezzo || 0).toFixed(2)} €`, pageWidth - margin - 3, yPosition, { align: 'right' })
+        doc.setTextColor(0, 0, 0)
+        doc.setFont('helvetica', 'normal')
+        yPosition += 10
+      })
+
+      yPosition += 5
+    }
+
     if (yPosition > pageHeight - 60) {
       doc.addPage()
       yPosition = 20
@@ -476,7 +529,7 @@ export async function exportInvoiceToPdf({
       doc.setFontSize(7)
       doc.setTextColor(156, 163, 175)
       doc.setFont('helvetica', 'italic')
-      doc.text('Powered by Riccardo Zozzolotto with GardenOS', pageWidth / 2, pageHeight - 5, {
+      doc.text('Powered by Riccardo Zozzolotto — riccardozozzolotto.com', pageWidth / 2, pageHeight - 5, {
         align: 'center',
       })
     }

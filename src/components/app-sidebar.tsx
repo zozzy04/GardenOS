@@ -23,6 +23,7 @@ import {
   Leaf,
   ReceiptIcon,
   ShoppingCartIcon,
+  SmartphoneIcon,
   UserCheckIcon,
   WalletIcon,
 } from "lucide-react"
@@ -41,10 +42,12 @@ const ADMIN_NAV: NavItem[] = [
   { path: "/fattura", title: "Fattura", icon: <ReceiptIcon /> },
   { path: "/meteo", title: "Meteo", icon: <CloudIcon /> },
   { path: "/approvazioni", title: "Approvazioni", icon: <UserCheckIcon /> },
+  { path: "/pwa-guida", title: "Installa l'app", icon: <SmartphoneIcon /> },
 ]
 
 const CONDOMINO_NAV: NavItem[] = [
   { path: "/", title: "Il mio conto", icon: <WalletIcon /> },
+  { path: "/pwa-guida", title: "Installa l'app", icon: <SmartphoneIcon /> },
 ]
 
 type AppUser = {
@@ -132,10 +135,15 @@ export function AppSidebar({
         {navUser ? (
           <NavUser user={navUser} onLogout={onLogout} />
         ) : null}
-        <p className="px-2 pb-2 text-center text-[10px] tracking-wide text-muted-foreground/60 group-data-[collapsible=icon]:hidden">
+        <a
+          href="https://riccardozozzolotto.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-2 pb-2 text-center text-[10px] tracking-wide text-muted-foreground/60 hover:text-sidebar-primary group-data-[collapsible=icon]:hidden"
+        >
           Powered by{" "}
-          <span className="font-medium text-muted-foreground/80">R. Zozzolotto</span>
-        </p>
+          <span className="font-medium">R. Zozzolotto</span>
+        </a>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

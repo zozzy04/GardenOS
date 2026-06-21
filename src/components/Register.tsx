@@ -289,7 +289,14 @@ export function Register({
 
           <FieldDescription className="text-balance text-center text-[0.6875rem] tracking-wide text-muted-foreground/60">
             Powered by{' '}
-            <span className="font-medium text-muted-foreground/80">Riccardo Zozzolotto</span>
+            <a
+              href="https://riccardozozzolotto.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
+            >
+              Riccardo Zozzolotto
+            </a>
           </FieldDescription>
         </div>
       </div>

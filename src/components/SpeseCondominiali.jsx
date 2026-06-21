@@ -21,6 +21,13 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Loader2Icon } from 'lucide-react'
 import {
@@ -35,20 +42,32 @@ import { PageContainer, PageHeader, PageToolbar } from '@/components/page-layout
 import { ConfirmActionDialog } from '@/components/confirm-action-dialog'
 import { toastError, toastSuccess } from '@/lib/notify'
 
+// Aggiungi nuove categorie qui
+const SPESE_CATEGORIE = [
+  'Diserbante',
+  'Materiale necessario',
+  'Sacchi',
+  'Filo per decespugliatore',
+  'Benzina',
+]
+
+const emptyForm = () => ({
+  oggettoCategoria: '',
+  oggettoCustom: '',
+  data_acquisto: new Date().toISOString().split('T')[0],
+  prezzo: '',
+  scontrino_file: null,
+  scontrino_url: null,
+  scontrino_preview: null,
+})
+
 const SpeseCondominiali = () => {
   const { user } = useAuth()
   const { spese, loading, error, createSpesa, updateSpesa, deleteSpesa, uploadScontrino } =
     useSpese(user?.id)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
-  const [formData, setFormData] = useState({
-    oggetto: '',
-    data_acquisto: new Date().toISOString().split('T')[0],
-    prezzo: '',
-    scontrino_file: null,
-    scontrino_url: null,
-    scontrino_preview: null,
-  })
+  const [formData, setFormData] = useState(emptyForm())
   const [submitting, setSubmitting] = useState(false)
   const [uploadingFile, setUploadingFile] = useState(false)
   const [deleteTargetId, setDeleteTargetId] = useState(null)
@@ -79,8 +98,13 @@ const SpeseCondominiali = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!formData.oggetto.trim()) {
-      toastError("Inserisci l'oggetto della spesa")
+    const oggettoFinal =
+      formData.oggettoCategoria === 'Personalizzato'
+        ? formData.oggettoCustom.trim()
+        : formData.oggettoCategoria
+
+    if (!oggettoFinal) {
+      toastError("Seleziona o inserisci la categoria della spesa")
       return
     }
     if (!formData.prezzo || parseFloat(formData.prezzo) <= 0) {
@@ -105,7 +129,7 @@ const SpeseCondominiali = () => {
       }
 
       const spesaData = {
-        oggetto: formData.oggetto,
+        oggetto: oggettoFinal,
         data_acquisto: new Date(formData.data_acquisto).toLocaleDateString('it-IT'),
         prezzo: formData.prezzo,
         scontrino_url: scontrinoUrl,
@@ -131,14 +155,7 @@ const SpeseCondominiali = () => {
         toastSuccess('Spesa aggiunta')
       }
 
-      setFormData({
-        oggetto: '',
-        data_acquisto: new Date().toISOString().split('T')[0],
-        prezzo: '',
-        scontrino_file: null,
-        scontrino_url: null,
-        scontrino_preview: null,
-      })
+      setFormData(emptyForm())
       setEditingId(null)
       setShowForm(false)
     } catch (err) {
@@ -157,8 +174,10 @@ const SpeseCondominiali = () => {
         ? `${dataParts[2]}-${dataParts[1]}-${dataParts[0]}`
         : new Date().toISOString().split('T')[0]
 
+    const isKnownCategory = SPESE_CATEGORIE.includes(spesa.oggetto)
     setFormData({
-      oggetto: spesa.oggetto,
+      oggettoCategoria: isKnownCategory ? spesa.oggetto : 'Personalizzato',
+      oggettoCustom: isKnownCategory ? '' : spesa.oggetto,
       data_acquisto: dataISO,
       prezzo: spesa.prezzo.toString(),
       scontrino_file: null,
@@ -175,14 +194,8 @@ const SpeseCondominiali = () => {
     }, 100)
   }
 
-  const removeFile = () => {
-    setFormData({
-      ...formData,
-      scontrino_file: null,
-      scontrino_url: null,
-      scontrino_preview: null,
-    })
-  }
+  const removeFile = () =>
+    setFormData({ ...formData, scontrino_file: null, scontrino_url: null, scontrino_preview: null })
 
   const totaleSpese = spese.reduce((sum, s) => sum + (s.prezzo || 0), 0)
 
@@ -223,14 +236,38 @@ const SpeseCondominiali = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2 sm:col-span-2">
-                  <Label>Oggetto *</Label>
-                  <Input
-                    value={formData.oggetto}
-                    onChange={(e) => setFormData({ ...formData, oggetto: e.target.value })}
-                    placeholder="Es: Gomma dell'acqua, concime..."
+                  <Label>Categoria *</Label>
+                  <Select
+                    value={formData.oggettoCategoria}
+                    onValueChange={(v) =>
+                      setFormData({ ...formData, oggettoCategoria: v, oggettoCustom: '' })
+                    }
                     required
-                  />
+                  >
+                    <SelectTrigger className="h-11 w-full min-h-11 sm:h-10">
+                      <SelectValue placeholder="Seleziona categoria..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SPESE_CATEGORIE.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="Personalizzato">Personalizzato...</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+                {formData.oggettoCategoria === 'Personalizzato' && (
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label>Descrizione *</Label>
+                    <Input
+                      value={formData.oggettoCustom}
+                      onChange={(e) => setFormData({ ...formData, oggettoCustom: e.target.value })}
+                      placeholder="Es: Concime, gomma acqua..."
+                      required
+                    />
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>Data acquisto *</Label>
                   <Input
@@ -328,14 +365,7 @@ const SpeseCondominiali = () => {
                   onClick={() => {
                     setShowForm(false)
                     setEditingId(null)
-                    setFormData({
-                      oggetto: '',
-                      data_acquisto: new Date().toISOString().split('T')[0],
-                      prezzo: '',
-                      scontrino_file: null,
-                      scontrino_url: null,
-                      scontrino_preview: null,
-                    })
+                    setFormData(emptyForm())
                   }}
                 >
                   Annulla

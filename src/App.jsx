@@ -15,7 +15,6 @@ import { useAuth } from './hooks/useSupabase'
 import { useProfile } from './hooks/useProfile'
 import { Button } from '@/components/ui/button'
 
-// Lazy-loaded page components
 const Dashboard = lazy(() => import('./components/Dashboard'))
 const WorkLog = lazy(() => import('./components/WorkLog'))
 const Calendar = lazy(() => import('./components/Calendar'))
@@ -24,6 +23,7 @@ const Invoice = lazy(() => import('./components/Invoice'))
 const WeatherStats = lazy(() => import('./components/WeatherStats'))
 const AdminApprovals = lazy(() => import('./components/AdminApprovals').then(m => ({ default: m.AdminApprovals })))
 const MioConto = lazy(() => import('./components/MioConto'))
+const PwaGuide = lazy(() => import('./components/PwaGuide'))
 
 function PageLoader() {
   return (
@@ -121,11 +121,13 @@ function App() {
                 <Route path="/fattura" element={<Invoice />} />
                 <Route path="/meteo" element={<WeatherStats />} />
                 <Route path="/approvazioni" element={<AdminApprovals />} />
+                <Route path="/pwa-guida" element={<PwaGuide />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </>
             ) : (
               <>
                 <Route path="/" element={<MioConto highlightFamigliaNome={famiglia?.nome ?? null} />} />
+                <Route path="/pwa-guida" element={<PwaGuide />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </>
             )}
