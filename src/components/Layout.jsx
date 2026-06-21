@@ -11,6 +11,7 @@ const PAGE_TITLES = {
   '/fattura': 'Fattura',
   '/meteo': 'Statistiche meteo',
   '/approvazioni': 'Approvazioni',
+  '/pwa-guida': "Installa l'app",
 }
 
 const Layout = ({
@@ -20,7 +21,10 @@ const Layout = ({
   sidebarVariant = 'admin',
 }) => {
   const location = useLocation()
-  const title = PAGE_TITLES[location.pathname] || (sidebarVariant === 'condomino' ? 'Il mio conto' : 'GardenOS')
+  const condominoTitles = { '/': 'Il mio conto', '/pwa-guida': "Installa l'app" }
+  const title = sidebarVariant === 'condomino'
+    ? (condominoTitles[location.pathname] || 'Il mio conto')
+    : (PAGE_TITLES[location.pathname] || 'GardenOS')
 
   return (
     <SidebarProvider
