@@ -1,0 +1,871 @@
+================================================================================
+GARDENOS — DOCUMENTAZIONE COMPLETA: LOGICA, STILE E LAYOUT
+================================================================================
+Data generazione: 2026-03-29
+Progetto: GardenOS
+Autore: Riccardo Zozzolotto
+================================================================================
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. PANORAMICA PROGETTO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GardenOS è un gestionale per condomini per tracciare i lavori del giardino,
+le spese condominiali, generare fatture con distribuzione millesimi, e
+monitorare il meteo. Supporta due ruoli: admin (giardiniere/amministratore)
+e condomino.
+
+Stack tecnologico:
+  - React 19.2.0 + Vite (rolldown-vite 7.2.5) + TypeScript 5.9.3
+  - TailwindCSS v4.2.2 + shadcn/ui (radix-ui primitives)
+  - Supabase 2.89.0 (auth + database PostgreSQL + storage)
+  - lucide-react 0.577.0 (icone)
+  - next-themes 0.4.6 (dark mode)
+  - sonner 2.0.7 (toast notifications)
+  - recharts 2.15.4 (grafici)
+  - jsPDF 2.5.1 (generazione PDF fatture)
+  - Node >= 20.19.0 richiesto
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. STRUTTURA DIRECTORY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GardenOS/
+├── src/
+│   ├── components/
+│   │   ├── ui/                        ← shadcn UI primitives
+│   │   │   ├── alert.tsx
+│   │   │   ├── alert-dialog.tsx
+│   │   │   ├── avatar.tsx
+│   │   │   ├── badge.tsx
+│   │   │   ├── button.tsx
+│   │   │   ├── calendar.tsx
+│   │   │   ├── card.tsx
+│   │   │   ├── chart.tsx
+│   │   │   ├── collapsible.tsx
+│   │   │   ├── dialog.tsx
+│   │   │   ├── dropdown-menu.tsx
+│   │   │   ├── form.tsx
+│   │   │   ├── input.tsx
+│   │   │   ├── label.tsx
+│   │   │   ├── popover.tsx
+│   │   │   ├── select.tsx
+│   │   │   ├── separator.tsx
+│   │   │   ├── sheet.tsx
+│   │   │   ├── sidebar.tsx
+│   │   │   ├── skeleton.tsx
+│   │   │   ├── table.tsx
+│   │   │   ├── textarea.tsx
+│   │   │   ├── toggle.tsx
+│   │   │   ├── tooltip.tsx
+│   │   │   └── ...altri primitives
+│   │   │
+│   │   ├── App.jsx                    ← Root component, routing logico
+│   │   ├── Layout.jsx                 ← Wrapper SidebarProvider + SiteHeader
+│   │   ├── Login.jsx                  ← Pagina login
+│   │   ├── Register.tsx               ← Pagina registrazione
+│   │   ├── Dashboard.jsx              ← Dashboard admin con stats e grafico
+│   │   ├── WorkLog.jsx                ← Registro lavori (CRUD)
+│   │   ├── Calendar.jsx               ← Calendario con previsioni lavori
+│   │   ├── WeatherStats.jsx           ← Meteo con previsioni 5 giorni
+│   │   ├── Invoice.jsx                ← Generatore fatture + export PDF
+│   │   ├── SpeseCondominiali.jsx      ← Gestione spese (CRUD + upload scontrini)
+│   │   ├── MioConto.jsx               ← Vista condomino (sola lettura aggregata)
+│   │   ├── AdminApprovals.tsx         ← Pannello approvazioni admin
+│   │   ├── ProfileGateScreens.jsx     ← Schermate di blocco (pending/rejected/missing)
+│   │   ├── ConfigError.jsx            ← Modale errore configurazione env vars
+│   │   ├── app-sidebar.tsx            ← Sidebar shadcn con nav admin/condomino
+│   │   ├── site-header.tsx            ← Header sticky con ModeToggle
+│   │   ├── login-form.tsx             ← Form login (usato da Login.jsx)
+│   │   ├── auth-shell.tsx             ← Wrapper sfondo blur per auth screens
+│   │   ├── full-screen-loader.tsx     ← Loader schermo intero
+│   │   ├── mode-toggle.tsx            ← Toggle dark/light mode
+│   │   ├── page-layout.jsx            ← PageContainer / PageHeader / PageToolbar
+│   │   ├── dashboard-area-chart.tsx   ← Grafico attività (recharts)
+│   │   ├── dashboard-section-cards.jsx← Cards stats con trend
+│   │   ├── nav-main.tsx               ← Nav principale sidebar
+│   │   ├── nav-user.tsx               ← Avatar/menu utente in sidebar
+│   │   ├── nav-secondary.tsx          ← Nav secondaria sidebar
+│   │   └── confirm-action-dialog.jsx  ← AlertDialog per conferme distruttive
+│   │
+│   ├── config/
+│   │   ├── supabase.js                ← Client Supabase + servizi query
+│   │   ├── database.js                ← Config connessione DB
+│   │   └── weather.js                 ← API key OpenWeatherMap
+│   │
+│   ├── hooks/
+│   │   ├── useSupabase.js             ← useAuth, useLavori, useLocation, useSpese
+│   │   ├── useProfile.js              ← useProfile (profilo + famiglia)
+│   │   └── use-mobile.ts              ← Hook rilevamento mobile (<768px)
+│   │
+│   ├── lib/
+│   │   ├── utils.ts                   ← cn() utility (clsx + twMerge)
+│   │   ├── notify.ts                  ← Wrapper toast sonner
+│   │   ├── auth-errors.ts             ← Messaggi errore auth user-friendly
+│   │   ├── invoice-pdf.js             ← Generazione PDF con jsPDF
+│   │   └── invoice-millesimi.js       ← Calcolo distribuzione millesimi
+│   │
+│   ├── assets/                        ← Asset statici
+│   ├── index.css                      ← Stili globali, variabili tema
+│   └── main.jsx                       ← Entry point React
+│
+├── public/
+├── dist/                              ← Output build
+├── .env / .env.local                  ← Variabili ambiente
+├── .nvmrc                             ← Node 20.19.0
+├── package.json
+├── tsconfig.json
+├── vite.config.js
+├── tailwind.config.js
+├── components.json                    ← Config shadcn
+├── eslint.config.js
+└── vercel.json
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. STILE E TEMA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+── FONT ──────────────────────────────────────────────────────────────────────
+  - Sans: DM Sans (Google Fonts) → usato per tutto il corpo
+  - Heading/Serif: Fraunces → usato nei titoli prominenti
+  - Entrambi importati via @import in index.css
+
+── COLORI (OKLCH — tema "giardino") ──────────────────────────────────────────
+
+  Light mode:
+    --background:               oklch(0.98 0.01 120)    ← crema chiarissimo
+    --foreground:               oklch(0.18 0.04 145)    ← verde scuro testo
+    --primary:                  oklch(0.48 0.14 158)    ← smeraldo/verde primario
+    --primary-foreground:       oklch(0.98 0.01 120)    ← testo su primary
+    --secondary:                oklch(0.94 0.03 155)    ← neutro chiaro
+    --accent:                   oklch(0.92 0.06 145)    ← crema accentuata
+    --muted:                    oklch(0.94 0.02 140)
+    --destructive:              oklch(0.58 0.22 25)     ← rosso/arancio
+    --border:                   oklch(0.88 0.03 145)
+    --card:                     oklch(0.99 0.005 130)
+    --sidebar-background:       oklch(0.96 0.02 140)
+    --chart-1 ... --chart-5:    palette verde/moss/smeraldo
+
+  Dark mode (.dark):
+    --background:               oklch(0.13 0.025 155)   ← verde molto scuro
+    --foreground:               oklch(0.92 0.02 145)
+    --primary:                  oklch(0.60 0.14 158)    ← smeraldo più chiaro
+    --sidebar-background:       oklch(0.11 0.03 158)
+    [stesse variabili riadattate per dark mode]
+
+── BORDER RADIUS ─────────────────────────────────────────────────────────────
+  --radius: 0.75rem
+  --radius-sm: calc(var(--radius) - 4px)   → 0.5rem
+  --radius-md: calc(var(--radius) - 2px)   → 0.625rem
+  --radius-lg: var(--radius)               → 0.75rem
+  --radius-xl: calc(var(--radius) + 4px)   → 1rem
+
+── DARK MODE ─────────────────────────────────────────────────────────────────
+  Gestito da next-themes con classe `.dark` sull'elemento <html>.
+  Toggle accessibile via ModeToggle (dropdown Sun/Moon/System).
+
+── SCROLLBAR CUSTOM ──────────────────────────────────────────────────────────
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-thumb → colore --border arrotondato
+  ::-webkit-scrollbar-track → colore --muted
+
+── LAYOUT STRUTTURALE ────────────────────────────────────────────────────────
+  - Sidebar width:  --sidebar-width: 16rem (desktop) / --sidebar-width-mobile: 18rem
+  - Header height:  --header-height: 3.5rem (56px)
+  - Main content:   padding-top header, padding-left sidebar (gestito da shadcn)
+
+── COMPONENTI SHADCN UTILIZZATI ─────────────────────────────────────────────
+  Alert, AlertDialog, Avatar, Badge, Button, Calendar (date picker),
+  Card (CardHeader/CardContent/CardFooter), Chart (ChartContainer recharts),
+  Collapsible, Dialog, DropdownMenu, Form (react-hook-form), Input, Label,
+  Popover, Select, Separator, Sheet (drawer mobile), Sidebar, Skeleton,
+  Table (TableHeader/TableBody/TableRow/TableCell), Textarea, Toggle, Tooltip
+
+── ICONE ─────────────────────────────────────────────────────────────────────
+  Tutte da lucide-react. Pattern di utilizzo:
+    - In bottoni icon-sm/icon:   <PencilIcon /> (size gestita dal Button)
+    - In page header:            <ClipboardListIcon className="size-7 text-primary" />
+    - In empty state:            <FileTextIcon className="size-12 opacity-50" />
+    - In Alert:                  <AlertCircleIcon /> (size gestita da Alert)
+  NOTA: Icons.jsx è stato rimosso, NON usare più quel file.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. LAYOUT GENERALE DELL'APP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌─────────────────────────────────────────────────────────────┐
+│  SiteHeader (sticky top, h-14, z-50)                         │
+│  [BurgerMenu] [Logo/Brand]                   [ModeToggle]   │
+├──────────────┬──────────────────────────────────────────────┤
+│              │                                               │
+│  AppSidebar  │   Main Content Area                          │
+│  (16rem)     │   (scrollabile, padding adeguato)            │
+│              │                                               │
+│  [Logo]      │   PageContainer                              │
+│  [Nav Admin] │     PageHeader (titolo + icona)              │
+│    Dashboard │     PageToolbar (filtri + azioni)            │
+│    Lavori    │     [Contenuto pagina]                       │
+│    Calendario│                                               │
+│    Spese     │                                               │
+│    Fattura   │                                               │
+│    Meteo     │                                               │
+│    Approv.   │                                               │
+│              │                                               │
+│  [NavUser]   │                                               │
+│  (avatar +   │                                               │
+│   menu)      │                                               │
+└──────────────┴──────────────────────────────────────────────┘
+
+Su mobile:
+  - Sidebar si chiude/apre con toggle (Sheet/drawer)
+  - Header rimane fisso
+  - Content è full-width
+
+Componenti layout:
+  Layout.jsx → <SidebarProvider> wrappa tutto
+               <AppSidebar /> a sinistra
+               <SiteHeader /> in cima (sticky)
+               <main> con pt-[var(--header-height)]
+
+  page-layout.jsx → PageContainer (max-w, padding laterale)
+                    PageHeader (flex, icona + titolo + sottotitolo)
+                    PageToolbar (flex wrap, filtri + bottoni CTA)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. ROUTING LOGICO (STATE-BASED, NO ROUTER)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Non è usato React Router. La navigazione è gestita con stato locale in App.jsx:
+
+  const [currentPage, setCurrentPage] = useState('dashboard')
+
+Pagine disponibili:
+  'dashboard'    → <Dashboard />
+  'lavori'       → <WorkLog />
+  'calendario'   → <Calendar />
+  'spese'        → <SpeseCondominiali />
+  'fattura'      → <Invoice />
+  'meteo'        → <WeatherStats />
+  'approvazioni' → <AdminApprovals />
+  'mio-conto'    → <MioConto />
+
+Il sidebar passa onPageChange(pageId) ai link nav.
+App.jsx renderizza il componente corrispondente con switch/condizionali.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. FLUSSO AUTENTICAZIONE E ACCESSO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+App.jsx — albero decisionale:
+
+  [Avvio]
+     │
+     ▼
+  auth.loading? ──YES──► <FullScreenLoader />
+     │NO
+     ▼
+  user === null? ──YES──► [showRegister?]──YES──► <Register />
+     │                          │NO
+     │                          ▼
+     │                      <Login />
+     │NO
+     ▼
+  profile.loading? ──YES──► loader inline
+     │NO
+     ▼
+  profile.error? ──YES──► <Dialog> con messaggio errore + logout
+     │NO
+     ▼
+  !profile? ──YES──► <ProfileMissing /> (gate screen)
+     │NO
+     ▼
+  profile.approval_status === 'pending'? ──YES──► <PendingApproval />
+     │NO
+     ▼
+  profile.approval_status === 'rejected'? ──YES──► <AccessRejected />
+     │NO
+     ▼
+  profile.role === 'admin'? ──YES──► <Layout> con tutte le pagine admin
+     │NO
+     ▼
+  profile.role === 'condomino' ──────────────► <Layout> solo con <MioConto />
+
+
+── REGISTRAZIONE ─────────────────────────────────────────────────────────────
+
+  1. Utente compila: email, password, display_name (opzionale), famiglia_id
+  2. Famiglie caricate da Supabase al mount del form
+  3. supabase.auth.signUp() con metadata
+  4. Dati famiglia/nome salvati in localStorage come 'gardenos_pending_profile'
+  5. Al login successivo, tryFlushPendingProfile() aggiorna il profilo nel DB
+
+── APPROVAZIONE ──────────────────────────────────────────────────────────────
+
+  Nuovi condomini → approval_status = 'pending' (default)
+  Admin vede lista in AdminApprovals.tsx
+  Azioni: Approva / Rifiuta → chiama RPC admin_set_profile_approval(user_id, status)
+  Dopo approvazione → condomino può accedere
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. DATABASE — TABELLE E STRUTTURA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+── TABELLA: lavori ───────────────────────────────────────────────────────────
+  Campi:
+    id                      UUID primary key
+    user_id                 UUID (FK → auth.users)
+    data                    DATE (YYYY-MM-DD)
+    tipi                    TEXT[] (array tipi lavoro)
+    descrizione             TEXT
+    durata                  NUMERIC (ore)
+    importo                 NUMERIC (€)
+    note                    TEXT
+    usa_prezzo_personalizzato BOOLEAN
+    prezzo_personalizzato   NUMERIC
+    created_at              TIMESTAMPTZ
+
+  Tariffe standard (hardcoded nel frontend):
+    'Taglio erba':    15 €/h
+    'Taglio siepe':   20 €/h
+    'Raccolta foglie': 15 €/h
+
+── TABELLA: spese_condominiali ───────────────────────────────────────────────
+  Campi:
+    id              UUID primary key
+    user_id         UUID (FK → auth.users)
+    oggetto         TEXT (descrizione spesa)
+    data_acquisto   DATE
+    prezzo          NUMERIC (€)
+    scontrino_url   TEXT (URL file in storage)
+    created_at      TIMESTAMPTZ
+
+  Storage: bucket 'scontrini' su Supabase
+  Tipi file accettati: JPEG, PNG, WEBP, PDF (max 10MB)
+
+── TABELLA: locations ────────────────────────────────────────────────────────
+  Campi:
+    id          UUID primary key
+    user_id     UUID
+    lat         FLOAT
+    lon         FLOAT
+    name        TEXT
+    is_default  BOOLEAN
+    created_at  TIMESTAMPTZ
+
+── TABELLA: famiglie ─────────────────────────────────────────────────────────
+  Campi:
+    id          UUID primary key
+    nome        TEXT
+    millesimi   NUMERIC (percentuale proprietà, somma = 1000)
+    ordine      INTEGER (per ordinamento)
+
+── TABELLA: profiles ─────────────────────────────────────────────────────────
+  Campi:
+    user_id         UUID (PK, FK → auth.users)
+    role            TEXT ('admin' | 'condomino')
+    famiglia_id     UUID (FK → famiglie)
+    approval_status TEXT ('pending' | 'approved' | 'rejected')
+    display_name    TEXT
+
+  Join:
+    famiglie → embedded via select('*, famiglie(*)')
+
+── RLS (Row Level Security) ──────────────────────────────────────────────────
+  Tutte le tabelle hanno RLS abilitato.
+  user_id = auth.uid() filtra le righe per utente.
+  Admin può vedere tutto via funzione RPC o policy speciale.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8. CUSTOM HOOKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+── useAuth() ─────────────────────────────────────────────────────────────────
+  Fonte: src/hooks/useSupabase.js
+
+  Returns:
+    user          Oggetto utente Supabase o null
+    loading       Boolean (init loading)
+    signUp(email, password, metadata)  → { data, error }
+    signIn(email, password)            → { data, error }
+    signOut()
+
+  Implementazione:
+    - supabase.auth.getSession() al mount
+    - supabase.auth.onAuthStateChange() per aggiornamenti in tempo reale
+    - cleanup subscription on unmount
+
+── useLavori(userId, options) ────────────────────────────────────────────────
+  Fonte: src/hooks/useSupabase.js
+
+  Options: { skipUserFilter: false }
+    Se skipUserFilter=true → carica tutti i lavori (per condomino che vede tutto)
+
+  Returns:
+    lavori          Array<Lavoro>
+    loading         Boolean
+    error           String | null
+    createLavoro(data)     → aggiunge + refresh
+    updateLavoro(id, data) → aggiorna + refresh
+    deleteLavoro(id)       → elimina + refresh
+    refresh()
+
+── useLocation(userId) ───────────────────────────────────────────────────────
+  Fonte: src/hooks/useSupabase.js
+
+  Returns:
+    location        { lat, lon, name } | null
+    loading         Boolean
+    error           String | null
+    saveLocation(locationData) → upsert + refresh
+    refresh()
+
+── useSpese(userId, options) ─────────────────────────────────────────────────
+  Fonte: src/hooks/useSupabase.js
+
+  Returns:
+    spese           Array<Spesa>
+    loading         Boolean
+    error           String | null
+    createSpesa(data)
+    updateSpesa(id, data)
+    deleteSpesa(id)
+    uploadScontrino(file) → { url } | { error }
+    refresh()
+
+── useProfile(user) ──────────────────────────────────────────────────────────
+  Fonte: src/hooks/useProfile.js
+
+  Returns:
+    profile         { user_id, role, famiglia_id, approval_status, display_name, famiglie }
+    famiglia        Primo elemento di famiglie (shortcut)
+    loading         Boolean
+    error           String | null
+
+  Logica:
+    1. Fetch da profiles con join famiglie
+    2. tryFlushPendingProfile() → se localStorage ha dati pending, li scrive nel DB
+
+── useIsMobile() ─────────────────────────────────────────────────────────────
+  Fonte: src/hooks/use-mobile.ts
+
+  Returns: Boolean (true se viewport < 768px)
+  Usa window.matchMedia con evento 'change'
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9. LOGICA PAGINE — DETTAGLIO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+── Dashboard.jsx ─────────────────────────────────────────────────────────────
+  Accesso: solo admin
+  Dati: useLavori(userId) + calcoli sui lavori degli ultimi 90 giorni
+
+  Cards stats (dashboard-section-cards.jsx):
+    - Totale guadagnato (€) con trend vs periodo precedente
+    - N° lavori effettuati
+    - Ore totali lavorate
+    - Media ore per lavoro
+
+  Grafico area (dashboard-area-chart.tsx):
+    - X-axis: giorni
+    - Y-axis: n° lavori e ore per giorno
+    - Dati aggregati per giorno
+    - Usando recharts AreaChart via ChartContainer shadcn
+
+── WorkLog.jsx ───────────────────────────────────────────────────────────────
+  Accesso: solo admin
+  Dati: useLavori(userId)
+
+  Funzionalità:
+    - Tabella lavori con colonne: Data, Tipi, Descrizione, Durata, Importo, Azioni
+    - Filtro per tipo lavoro
+    - Form aggiunta/modifica in Dialog
+    - Calcolo automatico importo da tariffe standard
+    - Override prezzo personalizzato (toggle)
+    - Delete con confirm dialog
+    - Ordinamento per data decrescente
+
+  Tipi lavoro disponibili (checkbox multiple):
+    - Taglio erba (15€/h)
+    - Taglio siepe (20€/h)
+    - Raccolta foglie (15€/h)
+    - Altro
+
+  Form campi:
+    data, tipi[], descrizione, durata (h), note,
+    usa_prezzo_personalizzato (bool), prezzo_personalizzato
+
+── Calendar.jsx ──────────────────────────────────────────────────────────────
+  Accesso: admin (visibile anche a condomino?)
+  Dati: tutti i lavori
+
+  Funzionalità:
+    - Vista mensile calendario
+    - Indicatori visivi sui giorni in cui ci sono stati lavori
+    - Sistema predittivo: calcola l'intervallo medio tra occorrenze dello stesso
+      tipo di lavoro e predice le prossime date
+    - Colori distinti per lavori passati vs date previste future
+
+── SpeseCondominiali.jsx ─────────────────────────────────────────────────────
+  Accesso: admin
+  Dati: useSpese(userId)
+
+  Funzionalità:
+    - Tabella spese: Data acquisto, Oggetto, Prezzo, Scontrino, Azioni
+    - Form in Dialog per aggiunta/modifica
+    - Upload scontrino (drag or input file):
+        - MIME types: image/jpeg, image/png, image/webp, application/pdf
+        - Limite: 10MB
+        - Salvato in bucket 'scontrini' Supabase Storage
+        - URL pubblico salvato in scontrino_url
+    - Preview scontrino (img o icona PDF)
+    - Delete con confirm dialog
+
+── Invoice.jsx ───────────────────────────────────────────────────────────────
+  Accesso: admin
+  Dati: useLavori + useSpese (senza filtro userId)
+
+  Funzionalità:
+    1. Selettore intervallo date (DateRangePicker con shadcn Calendar)
+    2. Filtro lavori e spese nel range
+    3. Riepilogo: totale lavori, totale spese, totale generale
+    4. Tabella lavori filtrati
+    5. Tabella spese filtrate
+    6. Tabella distribuzione millesimi per famiglia
+    7. Export PDF via exportInvoiceToPdf()
+
+  Dati fattura (buildInvoiceData):
+    { totale, totaleLavori, totaleSpese, totaleOre, numeroLavori,
+      numeroSpese, divisioneMillesimi, dateRange }
+
+── MioConto.jsx ──────────────────────────────────────────────────────────────
+  Accesso: condomino (vista read-only)
+  Dati: tutti lavori + tutte spese (skipUserFilter: true)
+
+  Funzionalità:
+    - Stesso calcolo fattura di Invoice.jsx
+    - Evidenziazione della propria famiglia nella tabella millesimi
+    - Selezione periodo (date range)
+    - Tabella distribuzione millesimi con highlight riga propria famiglia
+    - NO export PDF (solo visualizzazione)
+
+── WeatherStats.jsx ──────────────────────────────────────────────────────────
+  Accesso: admin
+  Dati: useLocation + fetch OpenWeatherMap
+
+  Funzionalità:
+    1. Gestione posizione:
+       - Geolocalizzazione browser (navigator.geolocation)
+       - Inserimento manuale lat/lon/nome
+       - Salvataggio in DB (useLocation)
+    2. Meteo attuale:
+       - Temperatura, sensazione termica, umidità, vento
+       - Icona meteo da OpenWeatherMap
+       - Pressione, visibilità, copertura nuvolosa
+    3. Previsioni 5 giorni:
+       - Aggregazione per giorno (12:00 UTC)
+       - Min/max temperatura, condizione prevalente
+    4. Auto-refresh ogni 10 minuti
+    5. Testi e condizioni in italiano (lang=it)
+
+  API endpoint:
+    api.openweathermap.org/data/2.5/weather  → meteo attuale
+    api.openweathermap.org/data/2.5/forecast → previsioni
+
+── AdminApprovals.tsx ────────────────────────────────────────────────────────
+  Accesso: solo admin
+  Dati: profiles dove role='condomino' AND approval_status='pending'
+
+  Funzionalità:
+    - Lista utenti in attesa con: nome, email, famiglia, data registrazione
+    - Bottone Approva → approval_status = 'approved'
+    - Bottone Rifiuta → approval_status = 'rejected'
+    - Chiamata RPC: admin_set_profile_approval(target_user_id, new_status)
+    - Refresh lista dopo ogni azione
+
+── ProfileGateScreens.jsx ────────────────────────────────────────────────────
+  3 schermate di blocco (mostrate invece dell'app):
+
+  ProfileMissing:
+    - Nessun record profilo associato all'utente
+    - Suggerisce di contattare admin o di fare logout
+
+  PendingApproval:
+    - Profilo creato ma in attesa di approvazione admin
+    - Mostra nome utente e messaggio d'attesa
+    - Bottone logout
+
+  AccessRejected:
+    - Accesso rifiutato dall'admin
+    - Messaggio di spiegazione
+    - Bottone logout
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+10. GENERAZIONE PDF FATTURA (invoice-pdf.js)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Funzione principale: exportInvoiceToPdf(options)
+
+Input options:
+  invoiceData            Dati calcolati da buildInvoiceData()
+  filteredWorks          Array lavori filtrati per periodo
+  filteredSpese          Array spese filtrate per periodo
+  highlightFamigliaNome  Nome famiglia da evidenziare (opzionale)
+  docTitle               Titolo doc (default: 'FATTURA LAVORI GIARDINO')
+  fileNamePrefix         Prefisso file (default: 'fattura-giardino')
+
+Output: file PDF scaricato automaticamente con nome
+  '{fileNamePrefix}-{YYYY-MM-DD}.pdf'
+
+Struttura PDF generato:
+  1. Header → titolo + periodo + data generazione
+  2. Riepilogo → box con totale lavori, spese, ore, importo totale
+  3. Sezione lavori → tabella con righe alternate (data, tipo, durata, importo)
+  4. Sezione spese → tabella + eventuale immagine scontrino embedded (JPEG/PNG)
+  5. Distribuzione millesimi → tabella famiglie con importo proporzionale
+     (riga in grassetto se highlightFamigliaNome corrisponde)
+  6. Footer → numero pagina + timestamp generazione
+
+── Calcolo millesimi (invoice-millesimi.js) ─────────────────────────────────
+
+buildInvoiceData(lavori, spese, dateRange, famiglie):
+  1. Filtra lavori e spese nel dateRange
+  2. Calcola totaleLavori = sum(lavori.importo)
+  3. Calcola totaleSpese = sum(spese.prezzo)
+  4. totale = totaleLavori + totaleSpese
+  5. Per ogni famiglia (ordinata per ordine ASC):
+       percentuale = famiglia.millesimi / sum(tutte.millesimi)
+       importoFamiglia = totale * percentuale
+  6. Arrotondamento: cents arrotondati, la famiglia con millesimi maggiori
+     assorbe la differenza da arrotondamento
+
+  Returns:
+    { totale, totaleLavori, totaleSpese, totaleOre, numeroLavori,
+      numeroSpese, divisioneMillesimi: { nome: { millesimi, importo } },
+      dateRange }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+11. CONFIGURAZIONE E VARIABILI AMBIENTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+File: .env / .env.local
+
+Variabili OBBLIGATORIE (una delle due forme):
+  VITE_SUPABASE_URL                             oppure
+  NEXT_PUBLIC_SUPABASE_URL
+
+  VITE_SUPABASE_ANON_KEY                        oppure
+  NEXT_PUBLIC_SUPABASE_ANON_KEY                 oppure
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY
+
+Variabili OPZIONALI:
+  DATABASE_URL          (solo per migrations server-side)
+  VITE_ADMIN_PASSWORD   (legacy, ora rimpiazzato da Supabase auth)
+
+API key meteo:
+  Hardcoded in src/config/weather.js
+  (OpenWeatherMap API key)
+
+Validazione:
+  supabase.js verifica la presenza delle variabili al boot.
+  Se mancanti → mostra <ConfigError /> invece dell'app.
+
+── vite.config.js ────────────────────────────────────────────────────────────
+  import { defineConfig } from 'rolldown-vite'
+  import react from '@vitejs/plugin-react'
+  import tailwindcss from '@tailwindcss/vite'
+
+  plugins: [react(), tailwindcss()]
+  resolve.alias: { '@': './src' }
+  envPrefix: ['VITE_', 'NEXT_PUBLIC_']
+  build.rollupOptions.output.assetFileNames: 'assets/[name]-[hash].[ext]'
+  optimizeDeps.include: ['jspdf']
+
+── vercel.json ───────────────────────────────────────────────────────────────
+  Build command: npm run build
+  Output dir: dist
+  Framework: vite
+  Rewrites: [{ "source": "/(.*)", "destination": "/index.html" }]  ← SPA routing
+  Headers MIME: application/javascript per .js e .mjs
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+12. PATTERNS DI SVILUPPO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+── Pattern form submission ───────────────────────────────────────────────────
+  1. preventDefault()
+  2. Svuota errori (setError(null))
+  3. Validazione input → errore se invalido
+  4. setLoading(true)
+  5. Chiamata API (await createXxx / updateXxx)
+  6. Catch errore → toast.error(message)
+  7. refresh() su successo
+  8. Chiudi dialog / resetta form
+  9. setLoading(false) in finally
+
+── Pattern CRUD componente ───────────────────────────────────────────────────
+  State: items[], formData{}, editingId (null o id)
+  Hook: useXxx(userId) con { items, loading, error, create, update, delete, refresh }
+
+  Create: editingId=null → chiama createXxx(formData)
+  Update: editingId=someId → chiama updateXxx(editingId, formData)
+  Delete: confirm dialog → deleteXxx(id)
+
+  Form: stesso form per create e update (rilevato da editingId)
+
+── Pattern date ──────────────────────────────────────────────────────────────
+  Display in UI:     formato italiano DD/MM/YYYY
+  Storage/API:       formato ISO YYYY-MM-DD
+  Conversione:       parseItDate(str) → Date
+                     formatInvoiceDate(str) → stringa italiana
+
+── Utility principali ────────────────────────────────────────────────────────
+  cn(...classes)     → clsx + twMerge (merge classi Tailwind)
+  toast.success(msg) → sonner toast verde
+  toast.error(msg)   → sonner toast rosso
+  toast(msg)         → sonner toast neutro
+
+── Gestione errori auth (auth-errors.ts) ─────────────────────────────────────
+  Codici mappati a messaggi italiani user-friendly:
+    422 (DB trigger error)  → "Errore durante la registrazione. Contatta l'admin."
+    "already registered"    → "Email già registrata. Prova ad accedere."
+    "weak password"         → "Password troppo debole. Usa almeno 8 caratteri."
+    "signup disabled"       → "Le registrazioni sono disabilitate."
+    fallback                → messaggio originale Supabase
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+13. SIDEBAR E NAVIGAZIONE — DETTAGLIO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+app-sidebar.tsx:
+  - Usa shadcn <Sidebar> con SidebarProvider
+  - Nav admin items (visibili solo se role='admin'):
+      { id: 'dashboard',    label: 'Dashboard',            icon: LayoutDashboardIcon }
+      { id: 'lavori',       label: 'Registro lavori',      icon: ClipboardListIcon }
+      { id: 'calendario',   label: 'Calendario',           icon: CalendarIcon }
+      { id: 'spese',        label: 'Spese condominiali',   icon: ReceiptIcon }
+      { id: 'fattura',      label: 'Fattura',              icon: FileTextIcon }
+      { id: 'meteo',        label: 'Meteo',                icon: CloudIcon }
+      { id: 'approvazioni', label: 'Approvazioni',         icon: UserCheckIcon }
+  - Nav condomino items:
+      { id: 'mio-conto',    label: 'Il mio conto',         icon: WalletIcon }
+  - NavUser in fondo: avatar con display_name + email + logout
+
+site-header.tsx:
+  - Sticky top-0 z-50
+  - SidebarTrigger (hamburger su mobile)
+  - Separator verticale
+  - Breadcrumb o titolo app
+  - ModeToggle a destra (Sun/Moon/System via DropdownMenu)
+
+mode-toggle.tsx:
+  - DropdownMenu con 3 voci: Light, Dark, System
+  - Usa next-themes setTheme()
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+14. AUTENTICAZIONE — SCHERMATE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+auth-shell.tsx:
+  - Wrapper per login/register
+  - Background: immagine sfocata di giardino o gradient verde
+  - Card centrata con blur/glass effect
+  - Logo o titolo app in cima
+
+Login.jsx / login-form.tsx:
+  - Campi: email, password
+  - Bottone "Accedi"
+  - Link "Non hai un account? Registrati"
+  - Errori inline sotto i campi
+  - Loading state sul bottone
+
+Register.tsx:
+  - Campi: email, password, display_name (opzionale), famiglia_id (select)
+  - Select famiglia: caricata da Supabase al mount
+  - Validazione: famiglia obbligatoria
+  - Bottone "Registrati"
+  - Link "Hai già un account? Accedi"
+  - Gestione errore 422 (trigger DB)
+  - Su successo: salva pending profile in localStorage, mostra messaggio conferma
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+15. DEPLOY E COMANDI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Comandi npm:
+  npm run dev       → server sviluppo su http://localhost:5173
+  npm run build     → build produzione in dist/
+  npm run preview   → preview build su http://localhost:4173
+  npm run lint      → ESLint check
+
+Deploy:
+  - Vercel (primario): push su main → auto-deploy
+  - Netlify/Cloudflare Pages: supportati via build standard Vite
+  - SPA routing gestito da vercel.json rewrites
+
+IDE (VSCode):
+  - launch.json configurato per dev server porta 5173
+  - Breakpoint debugging supportato
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+16. SICUREZZA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- RLS su tutte le tabelle Supabase
+- Filtro user_id su ogni query
+- Verifica profile.role per gating pagine admin
+- Approval gate blocca accesso prima della verifica admin
+- Chiave Supabase: solo anon key pubblica (no service role key nel frontend)
+- Upload file: validazione MIME type + limite dimensione (10MB)
+- Session JWT: gestita e refreshata automaticamente da Supabase client
+- Nessuna operazione privilegiata esposta senza controllo ruolo
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+17. RIEPILOGO FILE PRINCIPALI E LORO RESPONSABILITÀ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/main.jsx                    Entry point, monta <App /> con ThemeProvider
+src/components/App.jsx          Orchestrazione auth/routing logico/gates
+src/components/Layout.jsx       Shell visuale (sidebar + header + content)
+src/components/app-sidebar.tsx  Nav links per ruolo admin/condomino
+src/components/site-header.tsx  Header sticky con toggle tema
+src/components/Dashboard.jsx    Stats + grafico ultime attività (admin)
+src/components/WorkLog.jsx      CRUD registro lavori con calcolo tariffe
+src/components/Calendar.jsx     Calendario con previsioni prossimi lavori
+src/components/SpeseCondominiali.jsx  CRUD spese + upload scontrini
+src/components/Invoice.jsx      Fattura con filtro date + export PDF
+src/components/MioConto.jsx     Vista condomino (read-only, millesimi)
+src/components/WeatherStats.jsx Meteo attuale + 5 giorni + gestione posizione
+src/components/AdminApprovals.tsx  Pannello approvazione nuovi utenti
+src/components/ProfileGateScreens.jsx  Schermate blocco accesso
+src/components/Login.jsx        Schermata login
+src/components/Register.tsx     Schermata registrazione con selezione famiglia
+src/config/supabase.js          Client Supabase + servizi DB (lavori/spese/locations)
+src/hooks/useSupabase.js        Hooks dati: useAuth, useLavori, useLocation, useSpese
+src/hooks/useProfile.js         Hook profilo utente con flush pending
+src/lib/invoice-pdf.js          Generazione PDF fattura con jsPDF
+src/lib/invoice-millesimi.js    Calcolo distribuzione millesimi per famiglia
+src/lib/auth-errors.ts          Messaggi errore auth in italiano
+src/lib/utils.ts                cn() utility Tailwind
+src/index.css                   Variabili CSS tema, font, colori OKLCH
+
+
+================================================================================
+Fine documentazione GardenOS
+================================================================================
