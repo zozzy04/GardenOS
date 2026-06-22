@@ -51,6 +51,16 @@ const TARIFFE = {
   'Raccolta foglie': 15,
 }
 
+const EXTRA_CATEGORIE = [
+  'Diserbante',
+  'Materiale necessario',
+  'Sacchi',
+  'Filo per decespugliatore',
+  'Benzina',
+]
+
+const emptyExtraVoce = () => ({ label: '', labelCustom: '', prezzo: '' })
+
 const WorkLog = () => {
   const { user } = useAuth()
   const { lavori, loading, error, createLavoro, updateLavoro, deleteLavoro } = useLavori(user?.id)
@@ -62,19 +72,15 @@ const WorkLog = () => {
     descrizione: '',
     durata: '0.5',
     note: '',
-    prezzoPersonalizzato: '',
-    usaPrezzoPersonalizzato: false,
   })
+  const [extraVoci, setExtraVoci] = useState([])
   const [filterType, setFilterType] = useState('tutti')
   const [submitting, setSubmitting] = useState(false)
   const [deleteTargetId, setDeleteTargetId] = useState(null)
 
   const works = lavori || []
 
-  const calculateImporto = (tipi, durata, prezzoPersonalizzato = '', usaPrezzoPersonalizzato = false) => {
-    if (usaPrezzoPersonalizzato && prezzoPersonalizzato) {
-      return parseFloat(prezzoPersonalizzato).toFixed(2)
-    }
+  const calculateImporto = (tipi, durata) => {
     if (!tipi || tipi.length === 0 || !durata) return 0
     const tariffe = tipi.map((tipo) => TARIFFE[tipo] || 0).filter((t) => t > 0)
     if (tariffe.length === 0) return 0
@@ -91,14 +97,36 @@ const WorkLog = () => {
     }
   }
 
+  const handleAddExtra = () => setExtraVoci((v) => [...v, emptyExtraVoce()])
+  const handleRemoveExtra = (idx) => setExtraVoci((v) => v.filter((_, i) => i !== idx))
+  const handleExtraChange = (idx, field, value) =>
+    setExtraVoci((v) => v.map((item, i) => (i === idx ? { ...item, [field]: value } : item)))
+
+  const getValidExtraVoci = () =>
+    extraVoci
+      .filter((v) => v.prezzo && parseFloat(v.prezzo) > 0 && (v.label || v.labelCustom))
+      .map((v) => ({
+        label: v.label === 'Personalizzato' ? v.labelCustom : v.label,
+        prezzo: parseFloat(v.prezzo),
+      }))
+
+  const resetForm = () => {
+    setFormData({
+      data: new Date().toISOString().split('T')[0],
+      tipi: [],
+      descrizione: '',
+      durata: '0.5',
+      note: '',
+    })
+    setExtraVoci([])
+    setEditingId(null)
+    setShowForm(false)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!formData.usaPrezzoPersonalizzato && (!formData.tipi || formData.tipi.length === 0)) {
-      toastError('Seleziona almeno una categoria di lavoro oppure usa un prezzo personalizzato')
-      return
-    }
-    if (formData.usaPrezzoPersonalizzato && (!formData.prezzoPersonalizzato || parseFloat(formData.prezzoPersonalizzato) <= 0)) {
-      toastError('Inserisci un prezzo personalizzato valido')
+    if (!formData.tipi || formData.tipi.length === 0) {
+      toastError('Seleziona almeno una categoria di lavoro')
       return
     }
     if (!formData.durata || parseFloat(formData.durata) <= 0) {
@@ -107,7 +135,7 @@ const WorkLog = () => {
     }
 
     setSubmitting(true)
-    const importo = calculateImporto(formData.tipi, formData.durata, formData.prezzoPersonalizzato, formData.usaPrezzoPersonalizzato)
+    const importo = calculateImporto(formData.tipi, formData.durata)
 
     const workData = {
       data: new Date(formData.data).toLocaleDateString('it-IT'),
@@ -116,8 +144,7 @@ const WorkLog = () => {
       durata: formData.durata,
       importo: parseFloat(importo),
       note: formData.note || '',
-      usaPrezzoPersonalizzato: formData.usaPrezzoPersonalizzato,
-      prezzoPersonalizzato: formData.usaPrezzoPersonalizzato ? formData.prezzoPersonalizzato : '',
+      extraVoci: getValidExtraVoci(),
     }
 
     try {
@@ -138,20 +165,8 @@ const WorkLog = () => {
         }
         toastSuccess('Lavoro aggiunto')
       }
-
-      setFormData({
-        data: new Date().toISOString().split('T')[0],
-        tipi: [],
-        descrizione: '',
-        durata: '0.5',
-        note: '',
-        prezzoPersonalizzato: '',
-        usaPrezzoPersonalizzato: false,
-      })
-      setEditingId(null)
-      setShowForm(false)
+      resetForm()
     } catch (err) {
-      console.error('Errore:', err)
       toastError('Si è verificato un errore. Riprova.')
     } finally {
       setSubmitting(false)
@@ -167,13 +182,19 @@ const WorkLog = () => {
 
     setFormData({
       data: dataISO,
-      tipi: tipi,
+      tipi,
       descrizione: work.descrizione,
       durata: work.durata || '0.5',
       note: work.note || '',
-      prezzoPersonalizzato: work.prezzoPersonalizzato || '',
-      usaPrezzoPersonalizzato: work.usaPrezzoPersonalizzato || false,
     })
+    // Ricostruisce extraVoci con la struttura del form
+    setExtraVoci(
+      (work.extraVoci || []).map((v) => ({
+        label: EXTRA_CATEGORIE.includes(v.label) ? v.label : 'Personalizzato',
+        labelCustom: EXTRA_CATEGORIE.includes(v.label) ? '' : v.label,
+        prezzo: v.prezzo?.toString() || '',
+      }))
+    )
     setEditingId(work.id)
     setShowForm(true)
     setTimeout(() => {
@@ -196,10 +217,11 @@ const WorkLog = () => {
   const workTypes = ['tutti', ...new Set(allTipi.filter(Boolean))]
 
   const exportToCSV = () => {
-    const headers = ['Data', 'Tipi', 'Descrizione', 'Ore Lavoro', 'Importo (€)', 'Note']
+    const headers = ['Data', 'Tipi', 'Descrizione', 'Ore Lavoro', 'Importo (€)', 'Costi Extra (€)', 'Note']
     const rows = works.map((w) => {
       const tipi = Array.isArray(w.tipi) ? w.tipi.join(' + ') : w.tipo || ''
-      return [w.data, tipi, w.descrizione, w.durata || '0', w.importo ? `${w.importo.toFixed(2)}` : '0', w.note || '']
+      const extraTot = (w.extraVoci || []).reduce((s, v) => s + (v.prezzo || 0), 0)
+      return [w.data, tipi, w.descrizione, w.durata || '0', w.importo ? `${w.importo.toFixed(2)}` : '0', extraTot.toFixed(2), w.note || '']
     })
     const csv = [headers, ...rows].map((row) => row.map((cell) => `"${cell}"`).join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -224,7 +246,9 @@ const WorkLog = () => {
           <Button
             variant={showForm ? 'secondary' : 'default'}
             size="sm"
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => {
+              if (showForm) { resetForm() } else { setShowForm(true) }
+            }}
           >
             {showForm ? <><XIcon /> Chiudi</> : <><PlusIcon /> Nuovo lavoro</>}
           </Button>
@@ -312,46 +336,84 @@ const WorkLog = () => {
                         })}
                       </SelectContent>
                     </Select>
-                    <div className="text-sm font-medium text-primary">
-                      {!formData.usaPrezzoPersonalizzato && (formData.tipi || []).length > 0 && (
-                        <span>Totale: {calculateImporto(formData.tipi, formData.durata)} €</span>
-                      )}
-                      {formData.usaPrezzoPersonalizzato && formData.prezzoPersonalizzato && (
-                        <span>Totale: {parseFloat(formData.prezzoPersonalizzato).toFixed(2)} €</span>
-                      )}
-                    </div>
+                    {(formData.tipi || []).length > 0 && (
+                      <div className="text-sm font-medium text-primary">
+                        Totale lavoro: {calculateImporto(formData.tipi, formData.durata)} €
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
-                    <Checkbox
-                      checked={formData.usaPrezzoPersonalizzato}
-                      onCheckedChange={(checked) =>
-                        setFormData({
-                          ...formData,
-                          usaPrezzoPersonalizzato: !!checked,
-                          prezzoPersonalizzato: checked ? formData.prezzoPersonalizzato : '',
-                        })
-                      }
-                    />
-                    Usa prezzo personalizzato
-                  </label>
-                  {formData.usaPrezzoPersonalizzato && (
-                    <div className="mt-2 space-y-2">
-                      <Label>Prezzo personalizzato (€) *</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={formData.prezzoPersonalizzato}
-                        onChange={(e) => setFormData({ ...formData, prezzoPersonalizzato: e.target.value })}
-                        placeholder="0.00"
-                        required={formData.usaPrezzoPersonalizzato}
-                        className="h-11 sm:h-10"
-                      />
+
+                {/* Costi extra per questo lavoro */}
+                <div className="space-y-3 sm:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Costi extra</Label>
+                      <p className="mt-0.5 text-xs text-muted-foreground">Materiali o spese specifiche di questo lavoro</p>
+                    </div>
+                    <Button type="button" size="sm" variant="outline" onClick={handleAddExtra}>
+                      <PlusIcon /> Aggiungi
+                    </Button>
+                  </div>
+                  {extraVoci.length > 0 && (
+                    <div className="space-y-2.5">
+                      {extraVoci.map((voce, idx) => (
+                        <div key={idx} className="flex flex-wrap items-end gap-2.5 rounded-lg border border-border/60 bg-muted/30 p-3">
+                          <div className="min-w-[140px] flex-1 space-y-1.5">
+                            <Label className="text-xs">Categoria</Label>
+                            <Select
+                              value={voce.label}
+                              onValueChange={(v) => handleExtraChange(idx, 'label', v)}
+                            >
+                              <SelectTrigger className="h-10 w-full">
+                                <SelectValue placeholder="Seleziona..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {EXTRA_CATEGORIE.map((cat) => (
+                                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                ))}
+                                <SelectItem value="Personalizzato">Personalizzato...</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {voce.label === 'Personalizzato' && (
+                            <div className="min-w-[120px] flex-1 space-y-1.5">
+                              <Label className="text-xs">Descrizione</Label>
+                              <Input
+                                placeholder="Es. Fertilizzante"
+                                value={voce.labelCustom}
+                                onChange={(e) => handleExtraChange(idx, 'labelCustom', e.target.value)}
+                                className="h-10"
+                              />
+                            </div>
+                          )}
+                          <div className="w-24 space-y-1.5">
+                            <Label className="text-xs">€</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={voce.prezzo}
+                              onChange={(e) => handleExtraChange(idx, 'prezzo', e.target.value)}
+                              className="h-10"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveExtra(idx)}
+                            aria-label="Rimuovi voce"
+                          >
+                            <XIcon className="size-4" />
+                          </Button>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
+
                 <div className="space-y-2 sm:col-span-2">
                   <Label>Note</Label>
                   <Textarea
@@ -368,23 +430,7 @@ const WorkLog = () => {
                     <><Loader2Icon className="size-4 animate-spin" /> Caricamento...</>
                   ) : editingId ? 'Salva modifiche' : 'Aggiungi lavoro'}
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setShowForm(false)
-                    setEditingId(null)
-                    setFormData({
-                      data: new Date().toISOString().split('T')[0],
-                      tipi: [],
-                      descrizione: '',
-                      durata: '0.5',
-                      note: '',
-                      prezzoPersonalizzato: '',
-                      usaPrezzoPersonalizzato: false,
-                    })
-                  }}
-                >
+                <Button type="button" variant="outline" onClick={resetForm}>
                   Annulla
                 </Button>
               </div>
@@ -426,7 +472,7 @@ const WorkLog = () => {
         </div>
       )}
 
-      <Card className="border-border/60 overflow-hidden">
+      <Card className="overflow-hidden border-border/60">
         <CardContent className="p-0">
           {!loading && filteredWorks.length === 0 ? (
             <div className="flex flex-col items-center gap-2.5 py-16 text-center text-muted-foreground">
@@ -436,7 +482,7 @@ const WorkLog = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table className="min-w-[600px]">
+              <Table className="min-w-[560px]">
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40">
                     <TableHead className="pl-4 font-semibold">Descrizione</TableHead>
@@ -447,38 +493,52 @@ const WorkLog = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredWorks.map((work) => (
-                    <TableRow key={work.id}>
-                      <TableCell className="max-w-[220px] whitespace-normal align-top pl-4">
-                        <div className="flex flex-wrap gap-1">
-                          {(Array.isArray(work.tipi) ? work.tipi : work.tipo ? [work.tipo] : []).map((tipo, idx) => (
-                            <Badge key={idx} variant="secondary" className="text-[11px]">{tipo}</Badge>
-                          ))}
-                        </div>
-                        <p className="mt-1 text-sm text-foreground">{work.descrizione}</p>
-                      </TableCell>
-                      <TableCell className="align-top whitespace-nowrap text-sm">{work.data}</TableCell>
-                      <TableCell className="align-top text-sm">{work.durata || '0'}</TableCell>
-                      <TableCell className="align-top text-right text-sm tabular-nums">
-                        <div className="flex items-center justify-end gap-1">
-                          {work.importo ? `${work.importo.toFixed(2)} €` : '-'}
-                          {work.usaPrezzoPersonalizzato && (
-                            <Badge variant="outline" className="h-4 px-1 text-[9px]" title="Prezzo personalizzato">★</Badge>
+                  {filteredWorks.map((work) => {
+                    const extraTot = (work.extraVoci || []).reduce((s, v) => s + (v.prezzo || 0), 0)
+                    return (
+                      <TableRow key={work.id}>
+                        <TableCell className="max-w-[220px] whitespace-normal align-top pl-4">
+                          <div className="flex flex-wrap gap-1">
+                            {(Array.isArray(work.tipi) ? work.tipi : work.tipo ? [work.tipo] : []).map((tipo, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-[11px]">{tipo}</Badge>
+                            ))}
+                          </div>
+                          <p className="mt-1 text-sm text-foreground">{work.descrizione}</p>
+                          {(work.extraVoci || []).length > 0 && (
+                            <div className="mt-1.5 space-y-0.5">
+                              {(work.extraVoci || []).map((v, i) => (
+                                <p key={i} className="text-[11px] text-muted-foreground">
+                                  + {v.label} {v.prezzo?.toFixed(2)} €
+                                </p>
+                              ))}
+                            </div>
                           )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="align-top text-right pr-4">
-                        <div className="flex justify-end gap-1">
-                          <Button type="button" variant="outline" size="icon-sm" onClick={() => handleEdit(work)} title="Modifica">
-                            <PencilIcon />
-                          </Button>
-                          <Button type="button" variant="destructive" size="icon-sm" onClick={() => setDeleteTargetId(work.id)} title="Elimina">
-                            <Trash2Icon />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell className="align-top whitespace-nowrap text-sm">{work.data}</TableCell>
+                        <TableCell className="align-top text-sm">{work.durata || '0'}</TableCell>
+                        <TableCell className="align-top text-right text-sm tabular-nums">
+                          <div className="flex flex-col items-end">
+                            <span>{work.importo ? `${work.importo.toFixed(2)} €` : '-'}</span>
+                            {extraTot > 0 && (
+                              <span className="text-[10px] text-muted-foreground">
+                                +{extraTot.toFixed(2)} € extra
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-top text-right pr-4">
+                          <div className="flex justify-end gap-1">
+                            <Button type="button" variant="outline" size="icon-sm" onClick={() => handleEdit(work)} title="Modifica">
+                              <PencilIcon />
+                            </Button>
+                            <Button type="button" variant="destructive" size="icon-sm" onClick={() => setDeleteTargetId(work.id)} title="Elimina">
+                              <Trash2Icon />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </div>

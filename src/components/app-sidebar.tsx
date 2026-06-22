@@ -14,6 +14,7 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import {
   CalendarIcon,
@@ -65,9 +66,14 @@ export function AppSidebar({
   onLogout: () => void | Promise<void>
   navVariant?: "admin" | "condomino"
 }) {
+  const { isMobile, setOpenMobile } = useSidebar()
   const isCondomino = navVariant === "condomino"
   const navItems = isCondomino ? CONDOMINO_NAV : ADMIN_NAV
   const subtitle = isCondomino ? "Area condomino" : "Gestione giardino"
+
+  const closeOnMobile = () => {
+    if (isMobile) setOpenMobile(false)
+  }
 
   const navUser = user
     ? {
@@ -82,7 +88,7 @@ export function AppSidebar({
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <NavLink to="/">
+            <NavLink to="/" onClick={closeOnMobile}>
               <SidebarMenuButton
                 size="lg"
                 tooltip="GardenOS"
@@ -113,7 +119,7 @@ export function AppSidebar({
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.path}>
-                  <NavLink to={item.path} end={item.path === "/"}>
+                  <NavLink to={item.path} end={item.path === "/"} onClick={closeOnMobile}>
                     {({ isActive }) => (
                       <SidebarMenuButton
                         tooltip={item.title}

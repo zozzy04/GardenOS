@@ -4,10 +4,8 @@ import {
   FileTextIcon,
   GaugeIcon,
   Loader2Icon,
-  PlusIcon,
   ReceiptIcon,
   Trash2Icon,
-  XIcon,
 } from 'lucide-react'
 import { useAuth } from '../hooks/useSupabase'
 import { useLavori, useSpese, useFatture } from '../hooks/useSupabase'
@@ -26,13 +24,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Table,
   TableBody,
   TableCell,
@@ -43,17 +34,6 @@ import {
 import { PageContainer, PageHeader } from '@/components/page-layout'
 import { ConfirmActionDialog } from '@/components/confirm-action-dialog'
 import { toastError, toastSuccess } from '@/lib/notify'
-
-// Aggiungi nuove categorie qui — compaiono automaticamente nel select
-const EXTRA_CATEGORIE = [
-  'Diserbante',
-  'Materiale necessario',
-  'Sacchi',
-  'Filo per decespugliatore',
-  'Benzina',
-]
-
-const emptyVoce = () => ({ label: '', labelCustom: '', prezzo: '' })
 
 const Invoice = () => {
   const { user } = useAuth()
@@ -66,7 +46,6 @@ const Invoice = () => {
   const [filteredWorks, setFilteredWorks] = useState([])
   const [filteredSpese, setFilteredSpese] = useState([])
   const [invoiceData, setInvoiceData] = useState(null)
-  const [extraVoci, setExtraVoci] = useState([])
   const [emitting, setEmitting] = useState(false)
   const [deleteTargetId, setDeleteTargetId] = useState(null)
 
@@ -83,7 +62,6 @@ const Invoice = () => {
     return () => { cancelled = true }
   }, [])
 
-  // Auto-calcola il periodo dalla ultima fattura emessa
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -104,7 +82,7 @@ const Invoice = () => {
     if (startDate && endDate && lavori && spese) {
       computeInvoice()
     }
-  }, [startDate, endDate, lavori, spese, famiglieRows, extraVoci]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [startDate, endDate, lavori, spese, famiglieRows]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const computeInvoice = () => {
     if (!startDate || !endDate || !lavori || !spese) return
@@ -138,23 +116,20 @@ const Invoice = () => {
     setFilteredWorks(filtered)
     setFilteredSpese(filteredSpeseList)
 
+    // Aggrega extra_voci dai singoli lavori
+    const extraFromWorks = filtered
+      .flatMap((w) => w.extraVoci || [])
+      .filter((v) => v.prezzo > 0 && v.label)
+
     const built = buildInvoiceData(
       filtered,
       filteredSpeseList,
       famiglieRows,
       { start: startDate, end: endDate },
-      getValidExtraVoci()
+      extraFromWorks
     )
     setInvoiceData(built)
   }
-
-  const getValidExtraVoci = () =>
-    extraVoci
-      .filter((v) => v.prezzo && parseFloat(v.prezzo) > 0 && (v.label || v.labelCustom))
-      .map((v) => ({
-        label: v.label === 'Personalizzato' ? v.labelCustom : v.label,
-        prezzo: parseFloat(v.prezzo),
-      }))
 
   const handleGenerateInvoice = () => {
     if (!startDate || !endDate) {
@@ -171,7 +146,10 @@ const Invoice = () => {
     }
     setEmitting(true)
     try {
-      const validExtra = getValidExtraVoci()
+      const extraFromWorks = filteredWorks
+        .flatMap((w) => w.extraVoci || [])
+        .filter((v) => v.prezzo > 0 && v.label)
+
       const { error } = await createFattura({
         period_start: startDate,
         period_end: endDate,
@@ -181,7 +159,7 @@ const Invoice = () => {
         totale: invoiceData.totale,
         totale_ore: invoiceData.totaleOre,
         numero_lavori: invoiceData.numeroLavori,
-        extra_voci: validExtra,
+        extra_voci: extraFromWorks,
         divisione_millesimi: invoiceData.divisioneMillesimi,
         lavori_snapshot: filteredWorks.map((w) => ({
           data: w.data,
@@ -189,8 +167,8 @@ const Invoice = () => {
           descrizione: w.descrizione,
           durata: w.durata,
           importo: w.importo,
-          usaPrezzoPersonalizzato: w.usaPrezzoPersonalizzato,
           note: w.note,
+          extra_voci: w.extraVoci || [],
         })),
         spese_snapshot: filteredSpese.map((s) => ({
           oggetto: s.oggetto,
@@ -207,7 +185,7 @@ const Invoice = () => {
         invoiceData,
         filteredWorks,
         filteredSpese,
-        extraVoci: validExtra,
+        extraVoci: extraFromWorks,
       })
       toastSuccess('Fattura emessa e visibile ai condomini')
     } finally {
@@ -215,24 +193,23 @@ const Invoice = () => {
     }
   }
 
-  const exportToPDF = () =>
+  const exportToPDF = () => {
+    const extraFromWorks = filteredWorks
+      .flatMap((w) => w.extraVoci || [])
+      .filter((v) => v.prezzo > 0 && v.label)
     exportInvoiceToPdf({
       invoiceData,
       filteredWorks,
       filteredSpese,
-      extraVoci: getValidExtraVoci(),
+      extraVoci: extraFromWorks,
     })
-
-  const handleAddVoce = () => setExtraVoci((v) => [...v, emptyVoce()])
-  const handleRemoveVoce = (idx) => setExtraVoci((v) => v.filter((_, i) => i !== idx))
-  const handleVoceChange = (idx, field, value) =>
-    setExtraVoci((v) => v.map((item, i) => (i === idx ? { ...item, [field]: value } : item)))
+  }
 
   return (
     <PageContainer className="max-w-5xl">
       <PageHeader
         title="Genera fattura"
-        description="Seleziona il periodo, aggiungi costi extra e poi emetti"
+        description="Seleziona il periodo ed emetti la fattura — i costi extra si aggiungono dal registro lavori"
         icon={<FileTextIcon className="size-7 text-primary" />}
       />
 
@@ -267,85 +244,6 @@ const Invoice = () => {
             <GaugeIcon />
             Genera
           </Button>
-        </CardContent>
-      </Card>
-
-      {/* Costi extra */}
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-3">
-          <div>
-            <CardTitle className="text-lg">Costi extra</CardTitle>
-            <CardDescription>
-              Voci aggiuntive non registrate nelle spese — incluse nel totale e divise per millesimi
-            </CardDescription>
-          </div>
-          <Button size="sm" variant="outline" onClick={handleAddVoce} className="shrink-0">
-            <PlusIcon />
-            Aggiungi
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {extraVoci.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nessun costo extra. Clicca &ldquo;Aggiungi&rdquo; per inserirne uno.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {extraVoci.map((voce, idx) => (
-                <div key={idx} className="flex flex-wrap items-end gap-3">
-                  <div className="min-w-[180px] flex-1 space-y-1.5">
-                    <Label>Categoria</Label>
-                    <Select
-                      value={voce.label}
-                      onValueChange={(v) => handleVoceChange(idx, 'label', v)}
-                    >
-                      <SelectTrigger className="h-10 w-full">
-                        <SelectValue placeholder="Seleziona..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {EXTRA_CATEGORIE.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="Personalizzato">Personalizzato...</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {voce.label === 'Personalizzato' && (
-                    <div className="min-w-[150px] flex-1 space-y-1.5">
-                      <Label>Descrizione</Label>
-                      <Input
-                        placeholder="Es. Fertilizzante"
-                        value={voce.labelCustom}
-                        onChange={(e) => handleVoceChange(idx, 'labelCustom', e.target.value)}
-                      />
-                    </div>
-                  )}
-                  <div className="w-28 space-y-1.5">
-                    <Label>Prezzo (€)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={voce.prezzo}
-                      onChange={(e) => handleVoceChange(idx, 'prezzo', e.target.value)}
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleRemoveVoce(idx)}
-                    aria-label="Rimuovi voce"
-                  >
-                    <XIcon className="size-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -418,11 +316,9 @@ const Invoice = () => {
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="text-sm font-semibold">{work.data}</span>
-                      {work.usaPrezzoPersonalizzato && (
-                        <Badge variant="outline" className="font-medium">
-                          Prezzo personalizzato
-                        </Badge>
-                      )}
+                      <span className="font-semibold text-primary">
+                        {work.importo ? `${work.importo.toFixed(2)} €` : '-'}
+                      </span>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1">
                       {(Array.isArray(work.tipi)
@@ -437,12 +333,18 @@ const Invoice = () => {
                       ))}
                     </div>
                     <p className="mt-2 text-sm">{work.descrizione}</p>
-                    <div className="mt-2 flex justify-between text-sm text-muted-foreground">
-                      <span>Ore: {work.durata || '0'}</span>
-                      <span className="font-semibold text-foreground">
-                        {work.importo ? `${work.importo.toFixed(2)} €` : '-'}
-                      </span>
-                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">Ore: {work.durata || '0'}</p>
+                    {(work.extraVoci || []).length > 0 && (
+                      <div className="mt-2 space-y-1 border-t border-border/40 pt-2">
+                        <p className="text-xs font-medium text-muted-foreground">Costi extra:</p>
+                        {(work.extraVoci || []).map((v, i) => (
+                          <div key={i} className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">{v.label}</span>
+                            <span className="font-medium">{v.prezzo?.toFixed(2)} €</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </CardContent>
@@ -472,11 +374,12 @@ const Invoice = () => {
             </Card>
           )}
 
-          {/* Costi extra preview */}
+          {/* Costi extra aggregati dai lavori */}
           {invoiceData.extraVoci?.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Costi extra</CardTitle>
+                <CardDescription>Aggregati dai singoli lavori del periodo</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {invoiceData.extraVoci.map((voce, idx) => (

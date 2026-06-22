@@ -41,6 +41,22 @@ export function PageHeader({
   )
 }
 
+/** Footer fisso in fondo ad ogni pagina. */
+export function PageFooter() {
+  return (
+    <footer className="mt-auto border-t border-border/30 py-5 text-center">
+      <a
+        href="https://riccardozozzolotto.com/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[11px] tracking-wide text-muted-foreground/50 transition-colors hover:text-muted-foreground"
+      >
+        Powered by <span className="font-medium">Riccardo Zozzolotto</span>
+      </a>
+    </footer>
+  )
+}
+
 /** Titolo + azioni su una riga da desktop. */
 export function PageToolbar({
   children,
