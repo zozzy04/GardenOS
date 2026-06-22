@@ -43,10 +43,10 @@ export async function exportInvoiceToPdf({
     const pageHeight = doc.internal.pageSize.getHeight()
     const margin = 20
 
-    doc.setFillColor(37, 99, 235)
+    doc.setFillColor(22, 163, 74)
     doc.rect(margin, 10, pageWidth - margin * 2, 30, 'F')
 
-    doc.setFillColor(29, 78, 216)
+    doc.setFillColor(21, 128, 61)
     doc.rect(margin, 10, pageWidth - margin * 2, 3, 'F')
 
     doc.setTextColor(255, 255, 255)
@@ -70,13 +70,13 @@ export async function exportInvoiceToPdf({
     doc.setFillColor(249, 250, 251)
     doc.rect(margin, yPosition, pageWidth - margin * 2, 30, 'F')
 
-    doc.setFillColor(37, 99, 235)
+    doc.setFillColor(22, 163, 74)
     doc.rect(margin, yPosition, pageWidth - margin * 2, 2, 'F')
 
     yPosition += 10
     doc.setFontSize(13)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(37, 99, 235)
+    doc.setTextColor(22, 163, 74)
     doc.text('Riepilogo', margin + 5, yPosition)
     doc.setTextColor(0, 0, 0)
     yPosition += 8
@@ -102,17 +102,17 @@ export async function exportInvoiceToPdf({
     }
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(11)
-    doc.setTextColor(37, 99, 235)
+    doc.setTextColor(22, 163, 74)
     doc.text(`Totale fattura: ${invoiceData.totale.toFixed(2)} €`, margin + 5, yPosition)
     doc.setTextColor(0, 0, 0)
     yPosition += 25
 
     doc.setFontSize(15)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(37, 99, 235)
+    doc.setTextColor(22, 163, 74)
     doc.text('Dettaglio Lavori', margin, yPosition)
     doc.setTextColor(0, 0, 0)
-    doc.setDrawColor(37, 99, 235)
+    doc.setDrawColor(22, 163, 74)
     doc.setLineWidth(0.5)
     doc.line(margin, yPosition + 2, margin + 60, yPosition + 2)
     yPosition += 12
@@ -131,12 +131,12 @@ export async function exportInvoiceToPdf({
         if (index % 2 === 0) {
           doc.setFillColor(249, 250, 251)
           doc.rect(margin, yPosition - 2, pageWidth - margin * 2, boxHeight, 'F')
-          doc.setFillColor(37, 99, 235)
+          doc.setFillColor(22, 163, 74)
           doc.rect(margin, yPosition - 2, 2, boxHeight, 'F')
         } else {
           doc.setFillColor(255, 255, 255)
           doc.rect(margin, yPosition - 2, pageWidth - margin * 2, boxHeight, 'F')
-          doc.setFillColor(59, 130, 246)
+          doc.setFillColor(74, 222, 128)
           doc.rect(margin, yPosition - 2, 2, boxHeight, 'F')
           doc.setDrawColor(229, 231, 235)
           doc.setLineWidth(0.3)
@@ -147,7 +147,7 @@ export async function exportInvoiceToPdf({
 
         doc.setFontSize(9)
         doc.setFont('helvetica', 'bold')
-        doc.setTextColor(37, 99, 235)
+        doc.setTextColor(22, 163, 74)
         doc.text('Data:', margin + 5, currentY)
         doc.setFont('helvetica', 'normal')
         doc.setTextColor(0, 0, 0)
@@ -156,7 +156,7 @@ export async function exportInvoiceToPdf({
         const tipi = Array.isArray(work.tipi) ? work.tipi.join(', ') : work.tipo || '-'
         const tipiText = tipi.length > 50 ? tipi.substring(0, 47) + '...' : tipi
         doc.setFont('helvetica', 'bold')
-        doc.setTextColor(37, 99, 235)
+        doc.setTextColor(22, 163, 74)
         doc.text('Tipi:', margin + 60, currentY)
         doc.setFont('helvetica', 'normal')
         doc.setTextColor(0, 0, 0)
@@ -174,7 +174,7 @@ export async function exportInvoiceToPdf({
 
         doc.setFontSize(9)
         doc.setFont('helvetica', 'bold')
-        doc.setTextColor(37, 99, 235)
+        doc.setTextColor(22, 163, 74)
         doc.text('Descrizione:', margin + 5, currentY)
         doc.setFont('helvetica', 'normal')
         doc.setTextColor(0, 0, 0)
@@ -186,7 +186,7 @@ export async function exportInvoiceToPdf({
 
         doc.setFontSize(9)
         doc.setFont('helvetica', 'bold')
-        doc.setTextColor(37, 99, 235)
+        doc.setTextColor(22, 163, 74)
         doc.text('Ore:', margin + 5, currentY)
         doc.setFont('helvetica', 'normal')
         doc.setTextColor(0, 0, 0)
@@ -194,7 +194,7 @@ export async function exportInvoiceToPdf({
 
         if (!isCondominoView) {
           doc.setFont('helvetica', 'bold')
-          doc.setTextColor(37, 99, 235)
+          doc.setTextColor(22, 163, 74)
           doc.text('Importo:', margin + 40, currentY)
           doc.setFont('helvetica', 'bold')
           doc.setTextColor(34, 197, 94)
@@ -233,10 +233,10 @@ export async function exportInvoiceToPdf({
 
       doc.setFontSize(15)
       doc.setFont('helvetica', 'bold')
-      doc.setTextColor(37, 99, 235)
+      doc.setTextColor(22, 163, 74)
       doc.text('Spese Condominiali', margin, yPosition)
       doc.setTextColor(0, 0, 0)
-      doc.setDrawColor(37, 99, 235)
+      doc.setDrawColor(22, 163, 74)
       doc.setLineWidth(0.5)
       doc.line(margin, yPosition + 2, margin + 60, yPosition + 2)
       yPosition += 12
@@ -366,10 +366,10 @@ export async function exportInvoiceToPdf({
 
       doc.setFontSize(15)
       doc.setFont('helvetica', 'bold')
-      doc.setTextColor(37, 99, 235)
+      doc.setTextColor(22, 163, 74)
       doc.text('Costi Extra', margin, yPosition)
       doc.setTextColor(0, 0, 0)
-      doc.setDrawColor(37, 99, 235)
+      doc.setDrawColor(22, 163, 74)
       doc.setLineWidth(0.5)
       doc.line(margin, yPosition + 2, margin + 40, yPosition + 2)
       yPosition += 12
@@ -405,15 +405,15 @@ export async function exportInvoiceToPdf({
 
     doc.setFontSize(15)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(37, 99, 235)
+    doc.setTextColor(22, 163, 74)
     doc.text('Divisione per Millesimi', margin, yPosition)
     doc.setTextColor(0, 0, 0)
-    doc.setDrawColor(37, 99, 235)
+    doc.setDrawColor(22, 163, 74)
     doc.setLineWidth(0.5)
     doc.line(margin, yPosition + 2, margin + 60, yPosition + 2)
     yPosition += 12
 
-    doc.setFillColor(37, 99, 235)
+    doc.setFillColor(22, 163, 74)
     doc.rect(margin, yPosition - 5, pageWidth - margin * 2, 8, 'F')
 
     doc.setFontSize(10)
@@ -436,7 +436,7 @@ export async function exportInvoiceToPdf({
       if (yPosition > pageHeight - 30) {
         doc.addPage()
         yPosition = 20
-        doc.setFillColor(37, 99, 235)
+        doc.setFillColor(22, 163, 74)
         doc.rect(margin, yPosition - 5, pageWidth - margin * 2, 8, 'F')
         doc.setFont('helvetica', 'bold')
         doc.setTextColor(255, 255, 255)
@@ -492,10 +492,10 @@ export async function exportInvoiceToPdf({
     const totaleRectY = yPosition - 4
     const totaleRectHeight = 10
 
-    doc.setFillColor(37, 99, 235)
+    doc.setFillColor(22, 163, 74)
     doc.rect(margin, totaleRectY, pageWidth - margin * 2, totaleRectHeight, 'F')
 
-    doc.setFillColor(29, 78, 216)
+    doc.setFillColor(21, 128, 61)
     doc.rect(margin, totaleRectY, pageWidth - margin * 2, 2, 'F')
 
     const textY = totaleRectY + totaleRectHeight / 2 + 2
@@ -518,18 +518,22 @@ export async function exportInvoiceToPdf({
       doc.setFontSize(8)
       doc.setFont('helvetica', 'normal')
 
-      doc.text(`Pagina ${i} di ${totalPages}`, pageWidth / 2, pageHeight - 15, {
+      doc.text(`Pagina ${i} di ${totalPages}`, pageWidth / 2, pageHeight - 19, {
         align: 'center',
       })
 
-      doc.text(`Generato il ${new Date().toLocaleDateString('it-IT')}`, pageWidth / 2, pageHeight - 10, {
+      doc.text(`Generato il ${new Date().toLocaleDateString('it-IT')}`, pageWidth / 2, pageHeight - 13, {
         align: 'center',
       })
 
       doc.setFontSize(7)
       doc.setTextColor(156, 163, 175)
       doc.setFont('helvetica', 'italic')
-      doc.text('Powered by Riccardo Zozzolotto — riccardozozzolotto.com', pageWidth / 2, pageHeight - 5, {
+      doc.text(
+        "Documento generato automaticamente in base ai dati inseriti nell'applicazione GardenOS.",
+        pageWidth / 2, pageHeight - 8, { align: 'center' }
+      )
+      doc.text('Powered by Riccardo Zozzolotto — riccardozozzolotto.com', pageWidth / 2, pageHeight - 3, {
         align: 'center',
       })
     }

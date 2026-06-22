@@ -14,7 +14,6 @@ import {
   Card,
   CardContent,
 } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import {
   Table,
   TableBody,
@@ -24,6 +23,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { PageContainer, PageHeader } from '@/components/page-layout'
+import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
 /** @param {{ highlightFamigliaNome?: string | null }} props */
@@ -62,6 +62,14 @@ const MioConto = ({ highlightFamigliaNome = null }) => {
     })
   }
 
+  // Stats condomino: totale pagato + numero fatture
+  const totaleQuota = highlightFamigliaNome
+    ? fatture.reduce((sum, f) => {
+        const q = (f.divisione_millesimi || {})[highlightFamigliaNome]
+        return sum + (q ? q.importo : 0)
+      }, 0)
+    : 0
+
   return (
     <PageContainer className="max-w-5xl">
       <PageHeader
@@ -98,6 +106,51 @@ const MioConto = ({ highlightFamigliaNome = null }) => {
         </Card>
       )}
 
+      {/* Dashboard condomino — stats riepilogative */}
+      {!loading && fatture.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {highlightFamigliaNome ? (
+            <Card className="border-primary/25 bg-primary/5">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium text-primary">Totale pagato</p>
+                <p className="mt-1.5 font-sans text-2xl font-bold text-primary">
+                  {totaleQuota.toFixed(0)} €
+                </p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">da inizio gestione</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">Totale condominio</p>
+                <p className="mt-1.5 font-sans text-2xl font-bold">
+                  {fatture.reduce((s, f) => s + parseFloat(f.totale), 0).toFixed(0)} €
+                </p>
+              </CardContent>
+            </Card>
+          )}
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground">Fatture ricevute</p>
+              <p className="mt-1.5 font-sans text-2xl font-bold">{fatture.length}</p>
+            </CardContent>
+          </Card>
+          <Card className="col-span-2 sm:col-span-1">
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground">Ultima fattura</p>
+              <p className="mt-1.5 text-sm font-semibold">
+                {formatInvoiceDate(fatture[0]?.period_end || '')}
+              </p>
+              {highlightFamigliaNome && fatture[0] && (
+                <p className="mt-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                  Tua quota: {((fatture[0].divisione_millesimi || {})[highlightFamigliaNome]?.importo ?? 0).toFixed(0)} €
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {!loading && fatture.length > 0 && (
         <div className="space-y-3">
           {fatture.map((fattura) => {
@@ -110,47 +163,47 @@ const MioConto = ({ highlightFamigliaNome = null }) => {
 
             return (
               <Card key={fattura.id} className={cn(isExpanded && 'ring-1 ring-primary/30')}>
-                {/* Riga riassuntiva */}
+                {/* Riga riassuntiva con gerarchia chiara */}
                 <CardContent className="p-4 sm:p-5">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold">
-                        {formatInvoiceDate(fattura.period_start)} –{' '}
-                        {formatInvoiceDate(fattura.period_end)}
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {fattura.numero_lavori}{' '}
-                        {fattura.numero_lavori === 1 ? 'lavoro' : 'lavori'} · Emessa il{' '}
-                        {new Date(fattura.created_at).toLocaleDateString('it-IT')}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {miaQuota ? (
-                        <Badge className="bg-emerald-600 text-white hover:bg-emerald-700">
-                          La tua quota: {miaQuota.importo.toFixed(0)} €
-                        </Badge>
+                  {/* Prima riga: periodo + meta */}
+                  <div className="mb-3 min-w-0">
+                    <p className="text-base font-semibold leading-tight">
+                      {formatInvoiceDate(fattura.period_start)} –{' '}
+                      {formatInvoiceDate(fattura.period_end)}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {fattura.numero_lavori}{' '}
+                      {fattura.numero_lavori === 1 ? 'lavoro' : 'lavori'} · Emessa il{' '}
+                      {new Date(fattura.created_at).toLocaleDateString('it-IT')}
+                    </p>
+                  </div>
+                  {/* Seconda riga: quota + azioni */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {miaQuota ? (
+                      <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                        La tua quota: {miaQuota.importo.toFixed(0)} €
+                      </span>
+                    ) : (
+                      <span className="text-sm font-semibold">
+                        {parseFloat(fattura.totale).toFixed(2)} €
+                      </span>
+                    )}
+                    <Button size="sm" variant="outline" onClick={() => handleDownloadPdf(fattura)}>
+                      <DownloadIcon className="size-4" />
+                      PDF
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={isExpanded ? 'secondary' : 'outline'}
+                      onClick={() => setExpandedId(isExpanded ? null : fattura.id)}
+                      aria-label={isExpanded ? 'Chiudi dettaglio' : 'Vedi dettaglio'}
+                    >
+                      {isExpanded ? (
+                        <><ChevronUpIcon className="size-4" /> Chiudi</>
                       ) : (
-                        <span className="text-sm font-semibold">
-                          {parseFloat(fattura.totale).toFixed(2)} €
-                        </span>
+                        <><ChevronDownIcon className="size-4" /> Dettaglio</>
                       )}
-                      <Button size="sm" variant="outline" onClick={() => handleDownloadPdf(fattura)}>
-                        <DownloadIcon className="size-4" />
-                        PDF
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setExpandedId(isExpanded ? null : fattura.id)}
-                        aria-label={isExpanded ? 'Chiudi dettaglio' : 'Apri dettaglio'}
-                      >
-                        {isExpanded ? (
-                          <ChevronUpIcon className="size-4" />
-                        ) : (
-                          <ChevronDownIcon className="size-4" />
-                        )}
-                      </Button>
-                    </div>
+                    </Button>
                   </div>
                 </CardContent>
 
@@ -219,6 +272,16 @@ const MioConto = ({ highlightFamigliaNome = null }) => {
                               <p className="mt-1 text-xs text-muted-foreground">
                                 Ore: {work.durata || '0'}
                               </p>
+                              {(work.extra_voci || []).length > 0 && (
+                                <div className="mt-2 space-y-0.5 border-t border-border/40 pt-2">
+                                  {(work.extra_voci || []).map((v, vi) => (
+                                    <div key={vi} className="flex justify-between text-xs text-muted-foreground">
+                                      <span>{v.label}</span>
+                                      <span>{parseFloat(v.prezzo || 0).toFixed(2)} €</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -275,7 +338,7 @@ const MioConto = ({ highlightFamigliaNome = null }) => {
                       <div>
                         <h4 className="mb-3 text-sm font-semibold">Divisione per millesimi</h4>
                         <div className="-mx-0 max-w-[calc(100vw-3rem)] overflow-x-auto sm:max-w-none">
-                          <Table className="min-w-[340px] w-full">
+                          <Table className="w-full min-w-[340px]">
                             <TableHeader>
                               <TableRow className="bg-muted/50 hover:bg-muted/50">
                                 <TableHead className="pl-3 font-semibold">Famiglia</TableHead>

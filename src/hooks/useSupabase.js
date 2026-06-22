@@ -102,8 +102,7 @@ export const useLavori = (userId, options = {}) => {
         durata: lavoro.durata.toString(),
         importo: parseFloat(lavoro.importo),
         note: lavoro.note || '',
-        usaPrezzoPersonalizzato: lavoro.usa_prezzo_personalizzato || false,
-        prezzoPersonalizzato: lavoro.prezzo_personalizzato ? lavoro.prezzo_personalizzato.toString() : ''
+        extraVoci: lavoro.extra_voci || [],
       }))
       
       setLavori(formattedData)
@@ -132,8 +131,7 @@ export const useLavori = (userId, options = {}) => {
           durata: parseFloat(lavoroData.durata),
           importo: parseFloat(lavoroData.importo),
           note: lavoroData.note || null,
-          usa_prezzo_personalizzato: lavoroData.usaPrezzoPersonalizzato || false,
-          prezzo_personalizzato: lavoroData.prezzoPersonalizzato ? parseFloat(lavoroData.prezzoPersonalizzato) : null
+          extra_voci: lavoroData.extraVoci || [],
         })
         .select()
         .single()
@@ -165,8 +163,7 @@ export const useLavori = (userId, options = {}) => {
           durata: parseFloat(lavoroData.durata),
           importo: parseFloat(lavoroData.importo),
           note: lavoroData.note || null,
-          usa_prezzo_personalizzato: lavoroData.usaPrezzoPersonalizzato || false,
-          prezzo_personalizzato: lavoroData.prezzoPersonalizzato ? parseFloat(lavoroData.prezzoPersonalizzato) : null
+          extra_voci: lavoroData.extraVoci || [],
         })
         .eq('id', id)
         .eq('user_id', userId)

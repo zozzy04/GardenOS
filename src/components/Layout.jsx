@@ -2,6 +2,7 @@ import { useLocation } from 'react-router-dom'
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/app-sidebar'
 import { SiteHeader } from '@/components/site-header'
+import { PageFooter } from '@/components/page-layout'
 
 const PAGE_TITLES = {
   '/': 'Dashboard',
@@ -41,8 +42,11 @@ const Layout = ({
       <SidebarInset className="flex min-h-svh flex-col overflow-hidden">
         <SiteHeader title={title} />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
-          <div className="@container/main mx-auto w-full min-w-0 max-w-[1440px] flex-1 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pt-6 md:px-8 md:pt-8 lg:px-10 lg:pt-8">
+          <div className="@container/main mx-auto w-full min-w-0 max-w-[1440px] flex-1 px-4 pt-5 sm:px-6 sm:pt-6 md:px-8 md:pt-8 lg:px-10 lg:pt-8">
             {children}
+          </div>
+          <div className="px-4 pb-[max(0px,env(safe-area-inset-bottom))] sm:px-6 md:px-8 lg:px-10">
+            <PageFooter />
           </div>
         </div>
       </SidebarInset>
