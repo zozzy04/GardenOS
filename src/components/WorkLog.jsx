@@ -276,7 +276,7 @@ const WorkLog = () => {
                     value={formData.data}
                     onChange={(e) => setFormData({ ...formData, data: e.target.value })}
                     required
-                    className="h-11 sm:h-10"
+                    className=""
                   />
                 </div>
                 <div className="space-y-2 sm:col-span-2">
@@ -311,7 +311,7 @@ const WorkLog = () => {
                     onChange={(e) => setFormData({ ...formData, descrizione: e.target.value })}
                     placeholder="Es: Potatura rosmarino..."
                     required
-                    className="h-11 sm:h-10"
+                    className=""
                   />
                 </div>
                 <div className="space-y-2">
@@ -321,7 +321,7 @@ const WorkLog = () => {
                       value={formData.durata}
                       onValueChange={(v) => setFormData({ ...formData, durata: v })}
                     >
-                      <SelectTrigger className="h-11 w-full sm:h-10 sm:w-[180px]">
+                      <SelectTrigger className="w-full sm:w-[200px]">
                         <SelectValue placeholder="Durata" />
                       </SelectTrigger>
                       <SelectContent>
@@ -383,7 +383,7 @@ const WorkLog = () => {
                                 placeholder="Es. Fertilizzante"
                                 value={voce.labelCustom}
                                 onChange={(e) => handleExtraChange(idx, 'labelCustom', e.target.value)}
-                                className="h-10"
+                                className=""
                               />
                             </div>
                           )}
@@ -396,7 +396,7 @@ const WorkLog = () => {
                               placeholder="0.00"
                               value={voce.prezzo}
                               onChange={(e) => handleExtraChange(idx, 'prezzo', e.target.value)}
-                              className="h-10"
+                              className=""
                             />
                           </div>
                           <Button
