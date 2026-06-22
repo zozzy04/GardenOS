@@ -244,7 +244,7 @@ const SpeseCondominiali = () => {
                     }
                     required
                   >
-                    <SelectTrigger className="h-11 w-full min-h-11 sm:h-10">
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Seleziona categoria..." />
                     </SelectTrigger>
                     <SelectContent>
