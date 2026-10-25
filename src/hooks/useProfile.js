@@ -1,33 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../config/supabase'
 
-const PENDING_PROFILE_KEY = 'gardenos_pending_profile'
-
-async function tryFlushPendingProfile(user) {
-  try {
-    const raw = localStorage.getItem(PENDING_PROFILE_KEY)
-    if (!raw || !user?.id || !user?.email) return false
-    const p = JSON.parse(raw)
-    if (p.user_id !== user.id) return false
-    if (String(p.email || '').toLowerCase() !== String(user.email || '').toLowerCase())
-      return false
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        famiglia_id: p.famiglia_id,
-        display_name: p.display_name ?? null,
-      })
-      .eq('user_id', user.id)
-    if (!error) {
-      localStorage.removeItem(PENDING_PROFILE_KEY)
-      return true
-    }
-  } catch {
-    /* ignore */
-  }
-  return false
-}
-
 /** Messaggio chiaro se PostgREST risponde 404 (tabella assente). */
 function profileFetchErrorMessage(fetchError) {
   if (!fetchError) return 'Errore sconosciuto'
@@ -90,26 +63,6 @@ export function useProfile(user) {
         setProfile(null)
       } else {
         setProfile(data)
-        const flushed = await tryFlushPendingProfile(user)
-        if (flushed) {
-          const { data: fresh, error: again } = await supabase
-            .from('profiles')
-            .select(
-              `
-          user_id,
-          role,
-          famiglia_id,
-          approval_status,
-          display_name,
-          famiglie ( id, nome, millesimi, ordine )
-        `
-            )
-            .eq('user_id', user.id)
-            .maybeSingle()
-          if (!cancelled && !again && fresh) {
-            setProfile(fresh)
-          }
-        }
       }
       setLoading(false)
     }

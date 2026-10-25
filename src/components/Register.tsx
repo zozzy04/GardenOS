@@ -17,19 +17,9 @@ import {
   FieldLabel,
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { AuthShell } from '@/components/auth-shell'
 import { describeSignUpError } from '@/lib/auth-errors'
 import { useAuth } from '../hooks/useSupabase'
-import { supabase } from '../config/supabase'
-
-type FamigliaRow = { id: string; nome: string; millesimi: number; ordine: number }
 
 export function Register({
   onBack,
@@ -42,33 +32,9 @@ export function Register({
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
   const [displayName, setDisplayName] = React.useState('')
-  const [famigliaId, setFamigliaId] = React.useState('')
-  const [famiglie, setFamiglie] = React.useState<FamigliaRow[]>([])
   const [error, setError] = React.useState('')
   const [info, setInfo] = React.useState('')
   const [loading, setLoading] = React.useState(false)
-  const [loadingFamiglie, setLoadingFamiglie] = React.useState(true)
-
-  React.useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      setLoadingFamiglie(true)
-      const { data, error: e } = await supabase
-        .from('famiglie')
-        .select('id, nome, millesimi, ordine')
-        .order('ordine', { ascending: true })
-      if (cancelled) return
-      if (e) {
-        setError('Impossibile caricare le famiglie. Verifica Supabase e lo script SQL.')
-      } else if (data?.length) {
-        setFamiglie(data as FamigliaRow[])
-      }
-      setLoadingFamiglie(false)
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -82,13 +48,11 @@ export function Register({
         setLoading(false)
         return
       }
-      if (!famigliaId) {
-        setError('Seleziona la tua famiglia / unità millesimale')
-        setLoading(false)
-        return
-      }
-
-      const { data, error: signUpError } = await signUp(email.trim(), password, {})
+      // Il nome viaggia nei metadati di signUp: lo scrive il trigger
+      // handle_new_user_profile. Il client non tocca mai `profiles`.
+      const { data, error: signUpError } = await signUp(email.trim(), password, {
+        display_name: displayName.trim(),
+      })
 
       if (signUpError) {
         setError(describeSignUpError(signUpError))
@@ -96,61 +60,13 @@ export function Register({
         return
       }
 
-      const uid = data?.user?.id
-      const display = displayName.trim() || null
-
-      if (uid && data.session) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ famiglia_id: famigliaId, display_name: display })
-          .eq('user_id', uid)
-
-        if (profileError) {
-          try {
-            localStorage.setItem(
-              'gardenos_pending_profile',
-              JSON.stringify({
-                user_id: uid,
-                email: email.trim().toLowerCase(),
-                famiglia_id: famigliaId,
-                display_name: display,
-              })
-            )
-          } catch {
-            /* ignore */
-          }
-          setError(
-            profileError.code === '42501' ||
-              String(profileError.message || '').toLowerCase().includes('policy')
-              ? 'Account creato, ma non è permesso salvare famiglia/nome. Esegui in Supabase lo script `supabase-policy-profiles-pending-update.sql`, poi ricarica l\'app.'
-              : profileError.message || 'Errore nel salvataggio della famiglia sul profilo.'
-          )
-          setLoading(false)
-          return
-        }
-      } else if (uid) {
-        try {
-          localStorage.setItem(
-            'gardenos_pending_profile',
-            JSON.stringify({
-              user_id: uid,
-              email: email.trim().toLowerCase(),
-              famiglia_id: famigliaId,
-              display_name: display,
-            })
-          )
-        } catch {
-          /* ignore quota */
-        }
-      }
-
       if (data?.user && !data.session) {
         setInfo(
-          "Registrazione completata. Controlla la casella email per confermare l'indirizzo; al primo accesso verranno salvati famiglia e nome."
+          "Registrazione completata. Conferma l'indirizzo dalla mail che hai ricevuto, poi attendi l'approvazione del gestore."
         )
       } else {
         setInfo(
-          'Account creato. La tua richiesta è in attesa di approvazione da parte del gestore.'
+          'Account creato. Il gestore riceverà la richiesta e ti assegnerà alla tua famiglia.'
         )
       }
     } catch (err) {
@@ -234,26 +150,9 @@ export function Register({
                     />
                   </Field>
                   <Field>
-                    <FieldLabel>Famiglia</FieldLabel>
-                    <Select
-                      value={famigliaId}
-                      onValueChange={setFamigliaId}
-                      disabled={loading || loadingFamiglie || famiglie.length === 0}
-                      required
-                    >
-                      <SelectTrigger className="h-11 w-full sm:h-10">
-                        <SelectValue placeholder="Seleziona la tua famiglia" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {famiglie.map((f) => (
-                          <SelectItem key={f.id} value={f.id}>
-                            {f.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                     <FieldDescription>
-                      Deve coincidere con l&apos;elenco millesimi del condominio.
+                      Sarà il gestore ad abbinare il tuo account all&apos;unità
+                      millesimale corretta al momento dell&apos;approvazione.
                     </FieldDescription>
                   </Field>
                   <Field>
