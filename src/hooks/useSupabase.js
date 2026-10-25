@@ -6,6 +6,7 @@ import { supabase } from '../config/supabase'
 export const useAuth = () => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [passwordRecovery, setPasswordRecovery] = useState(false)
 
   useEffect(() => {
     // Controlla se c'è una sessione attiva
@@ -15,9 +16,21 @@ export const useAuth = () => {
     })
 
     // Ascolta i cambiamenti di autenticazione
+    /* Il link di recupero riporta nell'app con una sessione valida: senza
+       intercettare PASSWORD_RECOVERY l'utente entrerebbe normalmente, senza
+       mai poter cambiare la password. */
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setPasswordRecovery(true)
+      }
+      /* USER_UPDATED arriva a tutte le istanze di useAuth: senza questo,
+         l'istanza in App resterebbe in modo recupero anche dopo che il form
+         ha cambiato la password, lasciando l'utente bloccato li'. */
+      if (event === 'USER_UPDATED' || event === 'SIGNED_OUT') {
+        setPasswordRecovery(false)
+      }
       setUser(session?.user ?? null)
       setLoading(false)
     })
@@ -55,12 +68,30 @@ export const useAuth = () => {
     return { error }
   }
 
+  /* Manda la mail di recupero. Ritorna sempre senza distinguere fra indirizzo
+     esistente e no: chi non ha un account non deve poterlo dedurre da qui. */
+  const resetPassword = async (email) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: window.location.origin,
+    })
+    return { error }
+  }
+
+  const updatePassword = async (password) => {
+    const { error } = await supabase.auth.updateUser({ password })
+    if (!error) setPasswordRecovery(false)
+    return { error }
+  }
+
   return {
     user,
     loading,
+    passwordRecovery,
     signUp,
     signIn,
-    signOut
+    signOut,
+    resetPassword,
+    updatePassword,
   }
 }
 

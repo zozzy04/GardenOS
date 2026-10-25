@@ -12,13 +12,14 @@ import {
 } from "@/components/ui/card"
 import {
   Field,
-  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { AuthShell } from "@/components/auth-shell"
+import { AuthFooter } from "@/components/auth-footer"
 
 export type LoginFormProps = {
   email: string
@@ -30,6 +31,7 @@ export type LoginFormProps = {
   error: string
   className?: string
   onGoRegister?: () => void
+  onGoForgot?: () => void
 }
 
 export function LoginForm({
@@ -42,6 +44,7 @@ export function LoginForm({
   error,
   className,
   onGoRegister,
+  onGoForgot,
 }: LoginFormProps) {
   return (
     <AuthShell className={cn("gap-6", className)}>
@@ -83,11 +86,21 @@ export function LoginForm({
                     />
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="login-password">Password</FieldLabel>
-                    <Input
+                    <div className="flex items-center justify-between gap-2">
+                      <FieldLabel htmlFor="login-password">Password</FieldLabel>
+                      {onGoForgot ? (
+                        <button
+                          type="button"
+                          className="text-xs font-medium text-primary underline-offset-2 hover:underline"
+                          onClick={onGoForgot}
+                        >
+                          Password dimenticata?
+                        </button>
+                      ) : null}
+                    </div>
+                    <PasswordInput
                       id="login-password"
                       name="password"
-                      type="password"
                       value={password}
                       onChange={(e) => onPasswordChange(e.target.value)}
                       required
@@ -130,17 +143,7 @@ export function LoginForm({
             </p>
           ) : null}
 
-          <FieldDescription className="text-balance text-center text-[0.6875rem] tracking-wide text-muted-foreground/60">
-            Powered by{" "}
-            <a
-              href="https://riccardozozzolotto.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
-            >
-              Riccardo Zozzolotto
-            </a>
-          </FieldDescription>
+          <AuthFooter />
         </div>
       </div>
     </AuthShell>

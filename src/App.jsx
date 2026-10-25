@@ -5,6 +5,8 @@ import { FullScreenLoader } from './components/full-screen-loader'
 import { AuthShell } from '@/components/auth-shell'
 import Login from './components/Login'
 import { Register } from './components/Register'
+import { ForgotPasswordForm } from './components/forgot-password-form'
+import { ResetPasswordForm } from './components/reset-password-form'
 import ConfigError from './components/ConfigError'
 import {
   ProfileMissing,
@@ -35,7 +37,7 @@ function PageLoader() {
 
 function App() {
   const [authView, setAuthView] = useState('login')
-  const { user, loading: authLoading, signOut } = useAuth()
+  const { user, loading: authLoading, passwordRecovery, signOut } = useAuth()
   const { profile, famiglia, loading: profileLoading, error: profileError } = useProfile(user)
 
   useEffect(() => {
@@ -52,11 +54,25 @@ function App() {
     return <FullScreenLoader message="Caricamento..." />
   }
 
+  /* Il link di recupero autentica davvero l'utente: senza questo controllo
+     entrerebbe nell'app e non vedrebbe mai il form per la nuova password. */
+  if (passwordRecovery) {
+    return <ResetPasswordForm />
+  }
+
   if (!user) {
     if (authView === 'register') {
       return <Register onBack={() => setAuthView('login')} />
     }
-    return <Login onRegister={() => setAuthView('register')} />
+    if (authView === 'forgot') {
+      return <ForgotPasswordForm onBack={() => setAuthView('login')} />
+    }
+    return (
+      <Login
+        onRegister={() => setAuthView('register')}
+        onForgot={() => setAuthView('forgot')}
+      />
+    )
   }
 
   if (profileLoading) {

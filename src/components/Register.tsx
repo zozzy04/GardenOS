@@ -17,7 +17,9 @@ import {
   FieldLabel,
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { AuthShell } from '@/components/auth-shell'
+import { AuthFooter } from '@/components/auth-footer'
 import { describeSignUpError } from '@/lib/auth-errors'
 import { useAuth } from '../hooks/useSupabase'
 
@@ -123,18 +125,18 @@ export function Register({
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="reg-password">Password</FieldLabel>
-                    <Input
+                    <PasswordInput
                       id="reg-password"
                       name="password"
-                      type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       autoComplete="new-password"
                       disabled={loading}
-                      minLength={6}
+                      minLength={8}
                       className="h-11 sm:h-10"
                     />
+                    <FieldDescription>Almeno 8 caratteri.</FieldDescription>
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="reg-name">Nome (opzionale)</FieldLabel>
@@ -186,17 +188,7 @@ export function Register({
             </button>
           </p>
 
-          <FieldDescription className="text-balance text-center text-[0.6875rem] tracking-wide text-muted-foreground/60">
-            Powered by{' '}
-            <a
-              href="https://riccardozozzolotto.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
-            >
-              Riccardo Zozzolotto
-            </a>
-          </FieldDescription>
+          <AuthFooter />
         </div>
       </div>
     </AuthShell>

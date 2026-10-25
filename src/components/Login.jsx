@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useAuth } from '../hooks/useSupabase'
 import { LoginForm } from '@/components/login-form'
 
-const Login = ({ onRegister }) => {
+const Login = ({ onRegister, onForgot }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -60,6 +60,7 @@ const Login = ({ onRegister }) => {
       loading={loading}
       error={error}
       onGoRegister={onRegister}
+      onGoForgot={onForgot}
     />
   )
 }
