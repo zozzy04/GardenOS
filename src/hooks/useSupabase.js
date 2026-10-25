@@ -368,7 +368,7 @@ export const useSpese = (userId, options = {}) => {
         oggetto: spesa.oggetto,
         data_acquisto: new Date(spesa.data_acquisto).toLocaleDateString('it-IT'),
         prezzo: parseFloat(spesa.prezzo),
-        scontrino_url: spesa.scontrino_url || null,
+        scontrinoPath: spesa.scontrino_path || null,
         fatturaId: spesa.fattura_id ?? null,
       }))
       
@@ -395,7 +395,7 @@ export const useSpese = (userId, options = {}) => {
           oggetto: spesaData.oggetto,
           data_acquisto: dataISO,
           prezzo: parseFloat(spesaData.prezzo),
-          scontrino_url: spesaData.scontrino_url || null
+          scontrino_path: spesaData.scontrino_path || null
         })
         .select()
         .single()
@@ -424,7 +424,7 @@ export const useSpese = (userId, options = {}) => {
           oggetto: spesaData.oggetto,
           data_acquisto: dataISO,
           prezzo: parseFloat(spesaData.prezzo),
-          scontrino_url: spesaData.scontrino_url || null
+          scontrino_path: spesaData.scontrino_path || null
         })
         .eq('id', id)
         .eq('user_id', userId)
@@ -447,13 +447,11 @@ export const useSpese = (userId, options = {}) => {
       setError(null)
       // Prima elimina il file scontrino se presente
       const spesa = spese.find(s => s.id === id)
-      if (spesa && spesa.scontrino_url) {
+      if (spesa && spesa.scontrinoPath) {
         try {
-          const urlParts = spesa.scontrino_url.split('/')
-          const fileName = urlParts.slice(-2).join('/')
           await supabase.storage
             .from('scontrini')
-            .remove([fileName])
+            .remove([spesa.scontrinoPath])
         } catch (storageError) {
           console.warn('Errore nell\'eliminazione file scontrino:', storageError)
           // Continua comunque con l'eliminazione della spesa
@@ -491,18 +489,28 @@ export const useSpese = (userId, options = {}) => {
         })
       
       if (uploadError) throw uploadError
-      
-      // Ottieni l'URL pubblico
-      const { data: urlData } = supabase.storage
-        .from('scontrini')
-        .getPublicUrl(fileName)
-      
-      return { url: urlData.publicUrl, error: null }
+
+      /* Si salva il percorso dentro al bucket, non un URL: il bucket e'
+         privato e ogni accesso passa da un link firmato a scadenza. */
+      return { path: fileName, error: null }
     } catch (err) {
       console.error('Errore nell\'upload scontrino:', err)
       setError(err.message)
-      return { url: null, error: err }
+      return { path: null, error: err }
     }
+  }
+
+  /** Link temporaneo per aprire o incorporare uno scontrino. */
+  const getScontrinoUrl = async (path, secondi = 300) => {
+    if (!path) return null
+    const { data, error: signError } = await supabase.storage
+      .from('scontrini')
+      .createSignedUrl(path, secondi)
+    if (signError) {
+      console.error('Errore nella firma URL scontrino:', signError)
+      return null
+    }
+    return data?.signedUrl ?? null
   }
 
   return {
@@ -513,6 +521,7 @@ export const useSpese = (userId, options = {}) => {
     updateSpesa,
     deleteSpesa,
     uploadScontrino,
+    getScontrinoUrl,
     refresh: loadSpese
   }
 }

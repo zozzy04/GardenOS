@@ -53,13 +53,13 @@ const emptyForm = () => ({
   data_acquisto: new Date().toISOString().split('T')[0],
   prezzo: '',
   scontrino_file: null,
-  scontrino_url: null,
+  scontrino_path: null,
   scontrino_preview: null,
 })
 
 const SpeseCondominiali = () => {
   const { user } = useAuth()
-  const { spese, loading, error, createSpesa, updateSpesa, deleteSpesa, uploadScontrino } =
+  const { spese, loading, error, createSpesa, updateSpesa, deleteSpesa, uploadScontrino, getScontrinoUrl } =
     useSpese(user?.id)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -134,7 +134,7 @@ const SpeseCondominiali = () => {
     }
 
     setSubmitting(true)
-    let scontrinoUrl = formData.scontrino_url
+    let scontrinoPath = formData.scontrino_path
 
     try {
       if (formData.scontrino_file) {
@@ -146,14 +146,14 @@ const SpeseCondominiali = () => {
           setUploadingFile(false)
           return
         }
-        scontrinoUrl = uploadResult.url
+        scontrinoPath = uploadResult.path
       }
 
       const spesaData = {
         oggetto: oggettoFinal,
         data_acquisto: new Date(formData.data_acquisto).toLocaleDateString('it-IT'),
         prezzo: formData.prezzo,
-        scontrino_url: scontrinoUrl,
+        scontrino_path: scontrinoPath,
       }
 
       if (editingId) {
@@ -195,20 +195,45 @@ const SpeseCondominiali = () => {
         : new Date().toISOString().split('T')[0]
 
     const isKnownCategory = SPESE_CATEGORIE.includes(spesa.oggetto)
+    const isImmagine = !!spesa.scontrinoPath && /\.(jpg|jpeg|png|webp)$/i.test(spesa.scontrinoPath)
+
     setFormData({
       oggettoCategoria: isKnownCategory ? spesa.oggetto : 'Personalizzato',
       oggettoCustom: isKnownCategory ? '' : spesa.oggetto,
       data_acquisto: dataISO,
       prezzo: spesa.prezzo.toString(),
       scontrino_file: null,
-      scontrino_url: spesa.scontrino_url,
-      scontrino_preview:
-        spesa.scontrino_url && spesa.scontrino_url.match(/\.(jpg|jpeg|png|webp)$/i)
-          ? spesa.scontrino_url
-          : null,
+      scontrino_path: spesa.scontrinoPath,
+      scontrino_preview: null,
     })
     setEditingId(spesa.id)
     setShowForm(true)
+
+    // L'anteprima arriva dopo: serve un link firmato
+    if (isImmagine) {
+      getScontrinoUrl(spesa.scontrinoPath).then((url) => {
+        if (url) setFormData((prev) => ({ ...prev, scontrino_preview: url }))
+      })
+    }
+  }
+
+  /* La finestra si apre dentro il gesto dell'utente: firmare prima e aprire
+     dopo farebbe scattare il blocco popup, perche' il window.open non
+     sarebbe piu' collegato al click. */
+  const apriScontrino = async (path) => {
+    const finestra = window.open('', '_blank')
+    const url = await getScontrinoUrl(path)
+    if (!url) {
+      finestra?.close()
+      toastError('Impossibile aprire lo scontrino')
+      return
+    }
+    if (finestra) {
+      finestra.opener = null
+      finestra.location.href = url
+    } else {
+      window.location.href = url
+    }
   }
 
   const removeFile = () => {
@@ -216,7 +241,7 @@ const SpeseCondominiali = () => {
     setFormData({
       ...formData,
       scontrino_file: null,
-      scontrino_url: null,
+      scontrino_path: null,
       scontrino_preview: null,
     })
   }
@@ -354,23 +379,24 @@ const SpeseCondominiali = () => {
                       </Button>
                     </div>
                   )}
-                  {formData.scontrino_url && !formData.scontrino_preview && (
+                  {formData.scontrino_path && !formData.scontrino_preview && (
                     <div className="flex flex-wrap items-center gap-2">
-                      <a
-                        href={formData.scontrino_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-primary underline underline-offset-2"
+                      <Button
+                        type="button"
+                        variant="link"
+                        size="sm"
+                        className="px-0"
+                        onClick={() => apriScontrino(formData.scontrino_path)}
                       >
-                        <FileIcon className="mr-1 inline size-4" />
+                        <FileIcon className="size-4" />
                         Visualizza scontrino esistente
-                      </a>
+                      </Button>
                       <Button type="button" variant="outline" size="sm" onClick={removeFile}>
                         Rimuovi
                       </Button>
                     </div>
                   )}
-                  {!formData.scontrino_preview && !formData.scontrino_url && (
+                  {!formData.scontrino_preview && !formData.scontrino_path && (
                     <div className="rounded-lg border border-dashed border-input bg-muted/30 p-6 text-center">
                       <input
                         ref={fileInputRef}
@@ -432,16 +458,15 @@ const SpeseCondominiali = () => {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium">{spesa.oggetto}</p>
                       <p className="mt-1 text-xs text-muted-foreground">{spesa.data_acquisto}</p>
-                      {spesa.scontrino_url && (
-                        <a
-                          href={spesa.scontrino_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                      {spesa.scontrinoPath && (
+                        <button
+                          type="button"
+                          onClick={() => apriScontrino(spesa.scontrinoPath)}
                           className="mt-1.5 inline-flex items-center gap-1 text-xs text-primary underline underline-offset-2"
                         >
                           <FileIcon className="size-3.5" />
                           Scontrino
-                        </a>
+                        </button>
                       )}
                     </div>
                     <p className="shrink-0 font-sans text-lg font-bold tabular-nums">
@@ -492,16 +517,15 @@ const SpeseCondominiali = () => {
                       {spesa.prezzo ? formatEuro(spesa.prezzo, { centesimi: true }) : '—'}
                     </TableCell>
                     <TableCell className="whitespace-normal">
-                      {spesa.scontrino_url ? (
-                        <a
-                          href={spesa.scontrino_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                      {spesa.scontrinoPath ? (
+                        <button
+                          type="button"
+                          onClick={() => apriScontrino(spesa.scontrinoPath)}
                           className="inline-flex items-center gap-1 text-primary underline underline-offset-2"
                         >
                           <FileIcon className="size-4" />
                           Visualizza
-                        </a>
+                        </button>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}

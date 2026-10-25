@@ -47,7 +47,7 @@ function itToIso(dataIt) {
 const Invoice = () => {
   const { user } = useAuth()
   const { lavori } = useLavori(user?.id)
-  const { spese } = useSpese(user?.id)
+  const { spese, getScontrinoUrl } = useSpese(user?.id)
   const { fatture, emettiFattura, deleteFattura, getLastFatturaPeriodEnd } = useFatture()
   const [famiglieRows, setFamiglieRows] = useState([])
   const [famiglieError, setFamiglieError] = useState('')
@@ -158,6 +158,18 @@ const Invoice = () => {
     computeInvoice()
   }
 
+  /* Il bucket scontrini e' privato: il PDF incorpora le immagini, quindi
+     servono link firmati, generati al momento dell'export e non salvati. */
+  const conScontriniFirmati = async (lista) =>
+    Promise.all(
+      lista.map(async (spesa) => ({
+        ...spesa,
+        scontrino_url: spesa.scontrinoPath
+          ? await getScontrinoUrl(spesa.scontrinoPath, 600)
+          : null,
+      }))
+    )
+
   const handleEmetti = async () => {
     if (!invoiceData) {
       toastError('Genera prima la fattura')
@@ -205,7 +217,7 @@ const Invoice = () => {
       await exportInvoiceToPdf({
         invoiceData,
         filteredWorks,
-        filteredSpese,
+        filteredSpese: await conScontriniFirmati(filteredSpese),
         extraVoci: extraFromWorks,
       })
       toastSuccess('Fattura emessa e visibile ai condomini')
@@ -214,14 +226,14 @@ const Invoice = () => {
     }
   }
 
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     const extraFromWorks = filteredWorks
       .flatMap((w) => w.extraVoci || [])
       .filter((v) => v.prezzo > 0 && v.label)
-    exportInvoiceToPdf({
+    await exportInvoiceToPdf({
       invoiceData,
       filteredWorks,
-      filteredSpese,
+      filteredSpese: await conScontriniFirmati(filteredSpese),
       extraVoci: extraFromWorks,
     })
   }
