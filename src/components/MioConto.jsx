@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   ChevronDownIcon,
   ChevronUpIcon,
@@ -7,8 +7,11 @@ import {
   Loader2Icon,
   WalletIcon,
 } from 'lucide-react'
-import { useFatture } from '../hooks/useSupabase'
+import { useFatture, usePagamenti } from '../hooks/useSupabase'
 import { exportInvoiceToPdf, formatInvoiceDate } from '@/lib/invoice-pdf'
+import { formatEuro } from '@/lib/format'
+import { AccountBalanceHero } from '@/components/account-balance-hero'
+import { PaymentStatusBadge } from '@/components/payment-status-badge'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -29,6 +32,7 @@ import { cn } from '@/lib/utils'
 /** @param {{ highlightFamigliaNome?: string | null }} props */
 const MioConto = ({ highlightFamigliaNome = null }) => {
   const { fatture, loading } = useFatture()
+  const { pagamenti } = usePagamenti()
   const [expandedId, setExpandedId] = useState(null)
 
   const getMiaQuota = (fattura) => {
@@ -36,6 +40,13 @@ const MioConto = ({ highlightFamigliaNome = null }) => {
     const dm = fattura.divisione_millesimi || {}
     return dm[highlightFamigliaNome] || null
   }
+
+  // RLS restituisce al condòmino solo i pagamenti della sua famiglia:
+  // la presenza di una riga per quella fattura significa «saldata».
+  const saldateIl = useMemo(
+    () => new Map(pagamenti.map((p) => [p.fattura_id, p.saldata_il])),
+    [pagamenti]
+  )
 
   const handleDownloadPdf = (fattura) => {
     const invoiceData = {
@@ -62,13 +73,25 @@ const MioConto = ({ highlightFamigliaNome = null }) => {
     })
   }
 
-  // Stats condomino: totale pagato + numero fatture
-  const totaleQuota = highlightFamigliaNome
-    ? fatture.reduce((sum, f) => {
-        const q = (f.divisione_millesimi || {})[highlightFamigliaNome]
-        return sum + (q ? q.importo : 0)
-      }, 0)
-    : 0
+  const saldo = useMemo(() => {
+    const vuoto = { daPagare: 0, quoteAperte: 0, totaleVersato: 0 }
+    if (!highlightFamigliaNome) return vuoto
+
+    return fatture.reduce((acc, f) => {
+      const quota = (f.divisione_millesimi || {})[highlightFamigliaNome]
+      const importo = quota?.importo ?? 0
+      // Una fattura emessa prima che la famiglia esistesse non è un debito
+      if (importo <= 0) return acc
+
+      if (saldateIl.has(f.id)) {
+        acc.totaleVersato += importo
+      } else {
+        acc.daPagare += importo
+        acc.quoteAperte += 1
+      }
+      return acc
+    }, vuoto)
+  }, [fatture, saldateIl, highlightFamigliaNome])
 
   return (
     <PageContainer className="max-w-5xl">
@@ -79,8 +102,8 @@ const MioConto = ({ highlightFamigliaNome = null }) => {
       />
 
       {!highlightFamigliaNome && (
-        <Card className="border-amber-200 bg-amber-50/80 dark:border-amber-900 dark:bg-amber-950/40">
-          <CardContent className="py-3 text-sm text-amber-900 dark:text-amber-100">
+        <Card className="border-warning/50 bg-warning/10">
+          <CardContent className="py-3 text-sm">
             Nessuna famiglia associata al profilo. Contatta il gestore per collegare i millesimi
             corretti.
           </CardContent>
@@ -106,55 +129,23 @@ const MioConto = ({ highlightFamigliaNome = null }) => {
         </Card>
       )}
 
-      {/* Dashboard condomino — stats riepilogative */}
-      {!loading && fatture.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {highlightFamigliaNome ? (
-            <Card className="border-primary/25 bg-primary/5">
-              <CardContent className="p-4">
-                <p className="text-xs font-medium text-primary">Totale pagato</p>
-                <p className="mt-1.5 font-sans text-2xl font-bold text-primary">
-                  {totaleQuota.toFixed(0)} €
-                </p>
-                <p className="mt-0.5 text-[10px] text-muted-foreground">da inizio gestione</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground">Totale condominio</p>
-                <p className="mt-1.5 font-sans text-2xl font-bold">
-                  {fatture.reduce((s, f) => s + parseFloat(f.totale), 0).toFixed(0)} €
-                </p>
-              </CardContent>
-            </Card>
-          )}
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Fatture ricevute</p>
-              <p className="mt-1.5 font-sans text-2xl font-bold">{fatture.length}</p>
-            </CardContent>
-          </Card>
-          <Card className="col-span-2 sm:col-span-1">
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Ultima fattura</p>
-              <p className="mt-1.5 text-sm font-semibold">
-                {formatInvoiceDate(fatture[0]?.period_end || '')}
-              </p>
-              {highlightFamigliaNome && fatture[0] && (
-                <p className="mt-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
-                  Tua quota: {((fatture[0].divisione_millesimi || {})[highlightFamigliaNome]?.importo ?? 0).toFixed(0)} €
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+      {!loading && fatture.length > 0 && highlightFamigliaNome && (
+        <AccountBalanceHero
+          daPagare={saldo.daPagare}
+          quoteAperte={saldo.quoteAperte}
+          totaleVersato={saldo.totaleVersato}
+          fattureTotali={fatture.length}
+          ultimoPeriodo={formatInvoiceDate(fatture[0]?.period_end || '')}
+          onScaricaUltima={() => handleDownloadPdf(fatture[0])}
+        />
       )}
 
       {!loading && fatture.length > 0 && (
         <div className="space-y-3">
+          <h2 className="font-heading text-lg font-semibold">Storico</h2>
           {fatture.map((fattura) => {
             const miaQuota = getMiaQuota(fattura)
+            const saldataIl = saldateIl.get(fattura.id) ?? null
             const isExpanded = expandedId === fattura.id
             const lavori = fattura.lavori_snapshot || []
             const spese = fattura.spese_snapshot || []
@@ -166,26 +157,29 @@ const MioConto = ({ highlightFamigliaNome = null }) => {
                 {/* Riga riassuntiva con gerarchia chiara */}
                 <CardContent className="p-4 sm:p-5">
                   {/* Prima riga: periodo + meta */}
-                  <div className="mb-3 min-w-0">
-                    <p className="text-base font-semibold leading-tight">
-                      {formatInvoiceDate(fattura.period_start)} –{' '}
-                      {formatInvoiceDate(fattura.period_end)}
-                    </p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {fattura.numero_lavori}{' '}
-                      {fattura.numero_lavori === 1 ? 'lavoro' : 'lavori'} · Emessa il{' '}
-                      {new Date(fattura.created_at).toLocaleDateString('it-IT')}
-                    </p>
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-base font-semibold leading-tight">
+                        {formatInvoiceDate(fattura.period_start)} –{' '}
+                        {formatInvoiceDate(fattura.period_end)}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {fattura.numero_lavori}{' '}
+                        {fattura.numero_lavori === 1 ? 'lavoro' : 'lavori'} · Emessa il{' '}
+                        {new Date(fattura.created_at).toLocaleDateString('it-IT')}
+                      </p>
+                    </div>
+                    {miaQuota && <PaymentStatusBadge saldataIl={saldataIl} />}
                   </div>
                   {/* Seconda riga: quota + azioni */}
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-3">
                     {miaQuota ? (
-                      <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
-                        La tua quota: {miaQuota.importo.toFixed(0)} €
+                      <span className="font-sans text-2xl font-bold tabular-nums">
+                        {formatEuro(miaQuota.importo)}
                       </span>
                     ) : (
                       <span className="text-sm font-semibold">
-                        {parseFloat(fattura.totale).toFixed(2)} €
+                        {formatEuro(fattura.totale, { centesimi: true })}
                       </span>
                     )}
                     <Button size="sm" variant="outline" onClick={() => handleDownloadPdf(fattura)}>
@@ -225,16 +219,14 @@ const MioConto = ({ highlightFamigliaNome = null }) => {
                       <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
                         <p className="text-xs font-medium text-primary">Totale condominio</p>
                         <p className="mt-1 font-sans text-xl font-bold text-primary">
-                          {parseFloat(fattura.totale).toFixed(2)} €
+                          {formatEuro(fattura.totale, { centesimi: true })}
                         </p>
                       </div>
                       {miaQuota && (
-                        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
-                          <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                            La tua quota
-                          </p>
-                          <p className="mt-1 font-sans text-xl font-bold text-emerald-700 dark:text-emerald-400">
-                            {miaQuota.importo.toFixed(0)} €
+                        <div className="rounded-lg border border-success/30 bg-success/5 p-3">
+                          <p className="text-xs font-medium text-success">La tua quota</p>
+                          <p className="mt-1 font-sans text-xl font-bold text-success">
+                            {formatEuro(miaQuota.importo)}
                           </p>
                           <p className="mt-0.5 text-[10px] text-muted-foreground">
                             Mill. {miaQuota.millesimi.toFixed(3).replace('.', ',')}
@@ -375,16 +367,21 @@ const MioConto = ({ highlightFamigliaNome = null }) => {
                                       {data.millesimi.toFixed(3).replace('.', ',')}
                                     </TableCell>
                                     <TableCell className="pr-3 text-right tabular-nums">
-                                      {data.importo.toFixed(0)} €
+                                      {formatEuro(data.importo)}
                                     </TableCell>
                                   </TableRow>
                                 )
                               })}
                               <TableRow className="bg-muted/50 font-semibold hover:bg-muted/50">
                                 <TableCell className="pl-3">Totale</TableCell>
-                                <TableCell>1000,000</TableCell>
+                                <TableCell className="tabular-nums">
+                                  {Object.values(dm)
+                                    .reduce((s, d) => s + (d.millesimi || 0), 0)
+                                    .toFixed(3)
+                                    .replace('.', ',')}
+                                </TableCell>
                                 <TableCell className="pr-3 text-right tabular-nums">
-                                  {Math.round(parseFloat(fattura.totale)).toFixed(0)} €
+                                  {formatEuro(fattura.totale)}
                                 </TableCell>
                               </TableRow>
                             </TableBody>

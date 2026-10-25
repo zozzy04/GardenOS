@@ -484,6 +484,44 @@ export const useSpese = (userId, options = {}) => {
   }
 }
 
+// Hook per lo stato di pagamento delle quote.
+// Non filtra per famiglia: ci pensa RLS — l'admin vede tutti i pagamenti,
+// il condòmino solo quelli della propria famiglia.
+export const usePagamenti = () => {
+  const [pagamenti, setPagamenti] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    loadPagamenti()
+  }, [])
+
+  const loadPagamenti = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const { data, error: fetchError } = await supabase
+        .from('pagamenti')
+        .select('id, fattura_id, famiglia_id, saldata_il, importo')
+
+      if (fetchError) throw fetchError
+      setPagamenti(data || [])
+    } catch (err) {
+      console.error('Errore nel caricamento pagamenti:', err)
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return {
+    pagamenti,
+    loading,
+    error,
+    refresh: loadPagamenti,
+  }
+}
+
 // Hook per le fatture emesse
 export const useFatture = () => {
   const [fatture, setFatture] = useState([])
