@@ -11,7 +11,7 @@ export function SiteHeader({ title }: { title: string }) {
           orientation="vertical"
           className="mx-1 hidden h-5 sm:block"
         />
-        <h1 className="min-w-0 flex-1 truncate font-heading text-[0.9375rem] font-medium tracking-tight text-foreground sm:text-base">
+        <h1 className="min-w-0 flex-1 truncate font-heading text-md font-medium tracking-tight text-foreground sm:text-base">
           {title}
         </h1>
         <div className="ml-auto flex shrink-0 items-center gap-2">

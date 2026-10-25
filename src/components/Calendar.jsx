@@ -247,7 +247,7 @@ const Calendar = () => {
                           <Badge
                             key={idx}
                             variant="secondary"
-                            className="h-auto w-full max-w-full justify-start gap-0.5 truncate rounded-md px-1.5 py-0.5 text-[10px] font-normal sm:text-xs"
+                            className="h-auto w-full max-w-full justify-start gap-0.5 truncate rounded-md px-1.5 py-0.5 text-2xs font-normal sm:text-xs"
                             title={work.descrizione}
                           >
                             <CheckIcon className="size-3 shrink-0" />
@@ -265,7 +265,7 @@ const Calendar = () => {
                           <Badge
                             key={idx}
                             variant="outline"
-                            className="h-auto w-full max-w-full justify-start gap-0.5 truncate border-chart-4/50 bg-chart-4/20 px-1.5 py-0.5 text-[10px] font-normal sm:text-xs"
+                            className="h-auto w-full max-w-full justify-start gap-0.5 truncate border-chart-4/50 bg-chart-4/20 px-1.5 py-0.5 text-2xs font-normal sm:text-xs"
                             title={`Previsto: ${pred.tipo} (ultimo: ${pred.lastDate})`}
                           >
                             <ClockIcon className="size-3 shrink-0" />

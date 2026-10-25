@@ -9,7 +9,7 @@ import { FieldDescription } from "@/components/ui/field"
  */
 export function AuthFooter() {
   return (
-    <FieldDescription className="text-balance text-center text-[0.6875rem] tracking-wide text-muted-foreground">
+    <FieldDescription className="text-balance text-center text-2xs tracking-wide text-muted-foreground">
       Powered by{" "}
       <a
         href="https://riccardozozzolotto.com/"

@@ -533,7 +533,7 @@ const WorkLog = () => {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap gap-1">
                           {tipi.map((tipo, idx) => (
-                            <Badge key={idx} variant="secondary" className="text-[11px]">
+                            <Badge key={idx} variant="secondary" className="text-2xs">
                               {tipo}
                             </Badge>
                           ))}
@@ -548,7 +548,7 @@ const WorkLog = () => {
                           {work.importo ? formatEuro(work.importo, { centesimi: true }) : '—'}
                         </p>
                         {extraTot > 0 && (
-                          <p className="text-[11px] text-muted-foreground">
+                          <p className="text-2xs text-muted-foreground">
                             +{formatEuro(extraTot, { centesimi: true })} extra
                           </p>
                         )}
@@ -557,7 +557,7 @@ const WorkLog = () => {
                     {(work.extraVoci || []).length > 0 && (
                       <div className="mt-2 space-y-0.5 border-t border-border/40 pt-2">
                         {(work.extraVoci || []).map((v, i) => (
-                          <p key={i} className="text-[11px] text-muted-foreground">
+                          <p key={i} className="text-2xs text-muted-foreground">
                             + {v.label} {formatEuro(v.prezzo, { centesimi: true })}
                           </p>
                         ))}
@@ -607,14 +607,14 @@ const WorkLog = () => {
                         <TableCell className="max-w-[220px] whitespace-normal align-top pl-4">
                           <div className="flex flex-wrap gap-1">
                             {(Array.isArray(work.tipi) ? work.tipi : work.tipo ? [work.tipo] : []).map((tipo, idx) => (
-                              <Badge key={idx} variant="secondary" className="text-[11px]">{tipo}</Badge>
+                              <Badge key={idx} variant="secondary" className="text-2xs">{tipo}</Badge>
                             ))}
                           </div>
                           <p className="mt-1 text-sm text-foreground">{work.descrizione}</p>
                           {(work.extraVoci || []).length > 0 && (
                             <div className="mt-1.5 space-y-0.5">
                               {(work.extraVoci || []).map((v, i) => (
-                                <p key={i} className="text-[11px] text-muted-foreground">
+                                <p key={i} className="text-2xs text-muted-foreground">
                                   + {v.label} {v.prezzo?.toFixed(2)} €
                                 </p>
                               ))}
@@ -629,7 +629,7 @@ const WorkLog = () => {
                               {work.importo ? formatEuro(work.importo, { centesimi: true }) : '—'}
                             </span>
                             {extraTot > 0 && (
-                              <span className="text-[10px] text-muted-foreground">
+                              <span className="text-2xs text-muted-foreground">
                                 +{formatEuro(extraTot, { centesimi: true })} extra
                               </span>
                             )}

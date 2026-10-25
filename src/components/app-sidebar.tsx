@@ -145,7 +145,7 @@ export function AppSidebar({
           href="https://riccardozozzolotto.com/"
           target="_blank"
           rel="noopener noreferrer"
-          className="px-2 pb-2 text-center text-[10px] tracking-wide text-muted-foreground/60 hover:text-sidebar-primary group-data-[collapsible=icon]:hidden"
+          className="px-2 pb-2 text-center text-2xs tracking-wide text-muted-foreground/60 hover:text-sidebar-primary group-data-[collapsible=icon]:hidden"
         >
           Powered by{" "}
           <span className="font-medium">R. Zozzolotto</span>

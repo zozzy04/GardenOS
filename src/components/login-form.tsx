@@ -61,7 +61,7 @@ export function LoginForm({
                 <CardTitle className="text-center font-heading text-2xl font-semibold tracking-tight">
                   GardenOS
                 </CardTitle>
-                <CardDescription className="text-center text-[0.9375rem]">
+                <CardDescription className="text-center text-md">
                   Accedi al tuo account
                 </CardDescription>
               </div>
@@ -112,7 +112,7 @@ export function LoginForm({
                   <Field>
                     <Button
                       type="submit"
-                      className="mt-1 h-11 w-full text-[0.9375rem] font-medium sm:h-10 sm:text-sm"
+                      className="mt-1 h-11 w-full text-md font-medium sm:h-10 sm:text-sm"
                       disabled={loading}
                     >
                       {loading ? (

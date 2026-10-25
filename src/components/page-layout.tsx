@@ -49,7 +49,7 @@ export function PageFooter() {
         href="https://riccardozozzolotto.com/"
         target="_blank"
         rel="noopener noreferrer"
-        className="text-[11px] tracking-wide text-muted-foreground/50 transition-colors hover:text-muted-foreground"
+        className="text-2xs tracking-wide text-muted-foreground/50 transition-colors hover:text-muted-foreground"
       >
         Powered by <span className="font-medium">Riccardo Zozzolotto</span>
       </a>

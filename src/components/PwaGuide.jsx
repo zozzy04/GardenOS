@@ -218,8 +218,8 @@ const PwaGuide = () => (
       </Card>
     </div>
 
-    <Card className="border-emerald-200 bg-emerald-50/80 dark:border-emerald-900 dark:bg-emerald-950/40">
-      <CardContent className="py-4 text-sm text-emerald-900 dark:text-emerald-100">
+    <Card className="border-primary/30 bg-primary/5">
+      <CardContent className="py-4 text-sm text-foreground">
         <strong>Dopo l&apos;installazione:</strong> l&apos;app si apre a schermo intero senza la
         barra del browser, come qualsiasi altra app. Non richiede download dallo store.
       </CardContent>

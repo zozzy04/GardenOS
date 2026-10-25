@@ -228,7 +228,7 @@ const MioConto = ({ highlightFamigliaNome = null }) => {
                           <p className="mt-1 font-sans text-xl font-bold text-success">
                             {formatEuro(miaQuota.importo)}
                           </p>
-                          <p className="mt-0.5 text-[10px] text-muted-foreground">
+                          <p className="mt-0.5 text-2xs text-muted-foreground">
                             Mill. {miaQuota.millesimi.toFixed(3).replace('.', ',')}
                           </p>
                         </div>
@@ -349,7 +349,7 @@ const MioConto = ({ highlightFamigliaNome = null }) => {
                                     key={famiglia}
                                     className={cn(
                                       isMine &&
-                                        'bg-amber-100/90 font-medium dark:bg-amber-950/50'
+                                        'bg-accent font-medium'
                                     )}
                                   >
                                     <TableCell className="whitespace-normal pl-3">

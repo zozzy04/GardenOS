@@ -24,8 +24,8 @@ export function DashboardSectionCards({
       label: 'Guadagno totale',
       value: `${totalEarnings.toFixed(2)} €`,
       icon: BanknoteIcon,
-      accent: 'text-emerald-600 dark:text-emerald-400',
-      bg: 'bg-emerald-500/10 dark:bg-emerald-500/15',
+      accent: 'text-chart-1',
+      bg: 'bg-chart-1/10',
     },
     {
       key: 'works',
@@ -40,16 +40,16 @@ export function DashboardSectionCards({
       label: 'Ore totali',
       value: totalHours.toFixed(1),
       icon: ClockIcon,
-      accent: 'text-amber-600 dark:text-amber-400',
-      bg: 'bg-amber-500/10 dark:bg-amber-500/15',
+      accent: 'text-chart-4',
+      bg: 'bg-chart-4/15',
     },
     {
       key: 'avg',
       label: 'Media ore / lavoro',
       value: `${avgHoursPerWork.toFixed(1)}h`,
       icon: TrendingUpIcon,
-      accent: 'text-violet-600 dark:text-violet-400',
-      bg: 'bg-violet-500/10 dark:bg-violet-500/15',
+      accent: 'text-chart-5',
+      bg: 'bg-chart-5/10',
     },
   ]
 
@@ -67,7 +67,7 @@ export function DashboardSectionCards({
                 <Icon className={`size-[1.125rem] sm:size-5 ${c.accent}`} strokeWidth={1.75} />
               </div>
               <div className="space-y-0.5">
-                <p className="text-xs font-medium text-muted-foreground sm:text-[0.8125rem]">
+                <p className="text-xs font-medium text-muted-foreground sm:text-xs">
                   {c.label}
                 </p>
                 {loading ? (

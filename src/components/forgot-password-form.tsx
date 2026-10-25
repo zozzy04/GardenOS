@@ -63,7 +63,7 @@ export function ForgotPasswordForm({
                 <CardTitle className="text-center font-heading text-2xl font-semibold tracking-tight">
                   {inviata ? "Controlla la posta" : "Password dimenticata"}
                 </CardTitle>
-                <CardDescription className="text-balance text-center text-[0.9375rem]">
+                <CardDescription className="text-balance text-center text-md">
                   {inviata
                     ? "Se l'indirizzo è registrato riceverai un link per scegliere una nuova password."
                     : "Ti mandiamo un link per reimpostarla."}
@@ -99,7 +99,7 @@ export function ForgotPasswordForm({
                     <Field>
                       <Button
                         type="submit"
-                        className="mt-1 h-11 w-full text-[0.9375rem] font-medium sm:h-10 sm:text-sm"
+                        className="mt-1 h-11 w-full text-md font-medium sm:h-10 sm:text-sm"
                         disabled={loading}
                       >
                         {loading ? (

@@ -72,7 +72,7 @@ export function ResetPasswordForm() {
                 <CardTitle className="text-center font-heading text-2xl font-semibold tracking-tight">
                   Nuova password
                 </CardTitle>
-                <CardDescription className="text-balance text-center text-[0.9375rem]">
+                <CardDescription className="text-balance text-center text-md">
                   Scegline una e torni subito operativo.
                 </CardDescription>
               </div>
@@ -111,7 +111,7 @@ export function ResetPasswordForm() {
                   <Field>
                     <Button
                       type="submit"
-                      className="mt-1 h-11 w-full text-[0.9375rem] font-medium sm:h-10 sm:text-sm"
+                      className="mt-1 h-11 w-full text-md font-medium sm:h-10 sm:text-sm"
                       disabled={loading}
                     >
                       {loading ? (

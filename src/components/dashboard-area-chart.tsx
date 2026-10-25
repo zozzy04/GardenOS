@@ -75,7 +75,7 @@ export function DashboardAreaChart({ data }: { data: Point[] }) {
   return (
     <Card className="@container/card w-full min-w-0 max-w-full py-5 shadow-sm">
       <CardHeader className="shrink-0 gap-2 pb-3 md:gap-2 md:pb-4">
-        <CardTitle className="font-heading text-base font-semibold md:text-[1.05rem]">
+        <CardTitle className="font-heading text-base font-semibold md:text-base">
           Attività giornaliere
         </CardTitle>
         <CardDescription>
@@ -120,7 +120,7 @@ export function DashboardAreaChart({ data }: { data: Point[] }) {
       </CardHeader>
       <CardContent className="px-4 pt-3 sm:px-5 sm:pt-4 md:px-6 md:pt-5">
         {filteredData.length === 0 ? (
-          <div className="flex aspect-auto h-[min(15rem,42vh)] min-h-[180px] w-full items-center justify-center px-2 text-[13px] text-muted-foreground">
+          <div className="flex aspect-auto h-[min(15rem,42vh)] min-h-[180px] w-full items-center justify-center px-2 text-xs text-muted-foreground">
             Nessun dato nel periodo
           </div>
         ) : (
