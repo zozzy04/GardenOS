@@ -13,13 +13,9 @@ import {
 import { useAuth } from '../hooks/useSupabase'
 import { useLavori } from '../hooks/useSupabase'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
+import { ResponsiveFormSheet } from '@/components/responsive-form-sheet'
+import { formatEuro } from '@/lib/format'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -110,7 +106,7 @@ const WorkLog = () => {
         prezzo: parseFloat(v.prezzo),
       }))
 
-  const resetForm = () => {
+  const clearForm = () => {
     setFormData({
       data: new Date().toISOString().split('T')[0],
       tipi: [],
@@ -120,7 +116,16 @@ const WorkLog = () => {
     })
     setExtraVoci([])
     setEditingId(null)
+  }
+
+  const resetForm = () => {
+    clearForm()
     setShowForm(false)
+  }
+
+  const openNewForm = () => {
+    clearForm()
+    setShowForm(true)
   }
 
   const handleSubmit = async (e) => {
@@ -166,7 +171,7 @@ const WorkLog = () => {
         toastSuccess('Lavoro aggiunto')
       }
       resetForm()
-    } catch (err) {
+    } catch {
       toastError('Si è verificato un errore. Riprova.')
     } finally {
       setSubmitting(false)
@@ -197,9 +202,6 @@ const WorkLog = () => {
     )
     setEditingId(work.id)
     setShowForm(true)
-    setTimeout(() => {
-      document.getElementById('work-log-form')?.scrollIntoView({ behavior: 'smooth' })
-    }, 100)
   }
 
   const filteredWorks = filterType === 'tutti'
@@ -243,14 +245,8 @@ const WorkLog = () => {
           icon={<ClipboardListIcon className="size-6 text-primary" />}
         />
         <div className="flex shrink-0 flex-wrap gap-2.5">
-          <Button
-            variant={showForm ? 'secondary' : 'default'}
-            size="sm"
-            onClick={() => {
-              if (showForm) { resetForm() } else { setShowForm(true) }
-            }}
-          >
-            {showForm ? <><XIcon /> Chiudi</> : <><PlusIcon /> Nuovo lavoro</>}
+          <Button size="sm" onClick={openNewForm}>
+            <PlusIcon /> Nuovo lavoro
           </Button>
           {works.length > 0 && (
             <Button variant="outline" size="sm" onClick={exportToCSV}>
@@ -260,14 +256,66 @@ const WorkLog = () => {
         </div>
       </PageToolbar>
 
-      {showForm && (
-        <Card id="work-log-form" className="border-border/60">
-          <CardHeader className="pb-4">
-            <CardTitle className="font-heading text-lg">{editingId ? 'Modifica lavoro' : 'Nuovo lavoro'}</CardTitle>
-            <CardDescription>Compila i campi obbligatori</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-5">
+      {works.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Card className="border-border/60">
+            <CardContent className="p-4 text-center">
+              <p className="font-heading text-xl font-bold sm:text-2xl">{works.length}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Lavori totali</p>
+            </CardContent>
+          </Card>
+          <Card className="border-border/60">
+            <CardContent className="p-4 text-center">
+              <p className="font-heading text-xl font-bold sm:text-2xl">{totaleOre.toFixed(1)}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Ore totali</p>
+            </CardContent>
+          </Card>
+          <Card className="border-border/60">
+            <CardContent className="p-4 text-center">
+              <p className="font-heading text-xl font-bold sm:text-2xl">
+                {new Set(works.map((w) => w.data)).size}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Giorni lavorati</p>
+            </CardContent>
+          </Card>
+          <Card className="border-primary/25 bg-primary/5">
+            <CardContent className="p-4 text-center">
+              <p className="font-heading text-xl font-bold text-primary sm:text-2xl">
+                {formatEuro(totaleImporto)}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Importo totale</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      <ResponsiveFormSheet
+        open={showForm}
+        onOpenChange={(open) => {
+          if (!open) resetForm()
+        }}
+        title={editingId ? 'Modifica lavoro' : 'Nuovo lavoro'}
+        description="I campi con * sono obbligatori"
+        footer={
+          <>
+            <Button type="submit" form="work-log-form" disabled={submitting}>
+              {submitting ? (
+                <>
+                  <Loader2Icon className="size-4 animate-spin" /> Salvataggio...
+                </>
+              ) : editingId ? (
+                'Salva modifiche'
+              ) : (
+                'Aggiungi lavoro'
+              )}
+            </Button>
+            <Button type="button" variant="outline" onClick={resetForm}>
+              Annulla
+            </Button>
+          </>
+        }
+      >
+        <form id="work-log-form" onSubmit={handleSubmit} className="space-y-5">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Data *</Label>
@@ -338,7 +386,10 @@ const WorkLog = () => {
                     </Select>
                     {(formData.tipi || []).length > 0 && (
                       <div className="text-sm font-medium text-primary">
-                        Totale lavoro: {calculateImporto(formData.tipi, formData.durata)} €
+                        Totale lavoro:{' '}
+                        {formatEuro(calculateImporto(formData.tipi, formData.durata), {
+                          centesimi: true,
+                        })}
                       </div>
                     )}
                   </div>
@@ -424,20 +475,8 @@ const WorkLog = () => {
                   />
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2.5">
-                <Button type="submit" disabled={submitting}>
-                  {submitting ? (
-                    <><Loader2Icon className="size-4 animate-spin" /> Caricamento...</>
-                  ) : editingId ? 'Salva modifiche' : 'Aggiungi lavoro'}
-                </Button>
-                <Button type="button" variant="outline" onClick={resetForm}>
-                  Annulla
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+        </form>
+      </ResponsiveFormSheet>
 
       {works.length > 0 && (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -481,7 +520,75 @@ const WorkLog = () => {
               <p className="text-sm">Inizia aggiungendo il tuo primo lavoro.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/* Mobile: una card per lavoro — la tabella richiederebbe
+                scroll orizzontale proprio sulle colonne che contano */}
+            <ul className="divide-y divide-border md:hidden">
+              {filteredWorks.map((work) => {
+                const extraTot = (work.extraVoci || []).reduce((s, v) => s + (v.prezzo || 0), 0)
+                const tipi = Array.isArray(work.tipi) ? work.tipi : work.tipo ? [work.tipo] : []
+                return (
+                  <li key={work.id} className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap gap-1">
+                          {tipi.map((tipo, idx) => (
+                            <Badge key={idx} variant="secondary" className="text-[11px]">
+                              {tipo}
+                            </Badge>
+                          ))}
+                        </div>
+                        <p className="mt-1.5 text-sm font-medium">{work.descrizione}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {work.data} · {work.durata || '0'} h
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="font-sans text-lg font-bold tabular-nums">
+                          {work.importo ? formatEuro(work.importo, { centesimi: true }) : '—'}
+                        </p>
+                        {extraTot > 0 && (
+                          <p className="text-[11px] text-muted-foreground">
+                            +{formatEuro(extraTot, { centesimi: true })} extra
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    {(work.extraVoci || []).length > 0 && (
+                      <div className="mt-2 space-y-0.5 border-t border-border/40 pt-2">
+                        {(work.extraVoci || []).map((v, i) => (
+                          <p key={i} className="text-[11px] text-muted-foreground">
+                            + {v.label} {formatEuro(v.prezzo, { centesimi: true })}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    <div className="mt-3 flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => handleEdit(work)}
+                      >
+                        <PencilIcon /> Modifica
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-destructive hover:text-destructive"
+                        onClick={() => setDeleteTargetId(work.id)}
+                      >
+                        <Trash2Icon /> Elimina
+                      </Button>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+
+            <div className="hidden overflow-x-auto md:block">
               <Table className="min-w-[560px]">
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40">
@@ -518,10 +625,12 @@ const WorkLog = () => {
                         <TableCell className="align-top text-sm">{work.durata || '0'}</TableCell>
                         <TableCell className="align-top text-right text-sm tabular-nums">
                           <div className="flex flex-col items-end">
-                            <span>{work.importo ? `${work.importo.toFixed(2)} €` : '-'}</span>
+                            <span>
+                              {work.importo ? formatEuro(work.importo, { centesimi: true }) : '—'}
+                            </span>
                             {extraTot > 0 && (
                               <span className="text-[10px] text-muted-foreground">
-                                +{extraTot.toFixed(2)} € extra
+                                +{formatEuro(extraTot, { centesimi: true })} extra
                               </span>
                             )}
                           </div>
@@ -542,38 +651,10 @@ const WorkLog = () => {
                 </TableBody>
               </Table>
             </div>
+            </>
           )}
         </CardContent>
       </Card>
-
-      {works.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Card className="border-border/60">
-            <CardContent className="p-4 text-center">
-              <p className="font-heading text-xl font-bold sm:text-2xl">{works.length}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">Lavori totali</p>
-            </CardContent>
-          </Card>
-          <Card className="border-border/60">
-            <CardContent className="p-4 text-center">
-              <p className="font-heading text-xl font-bold sm:text-2xl">{totaleOre.toFixed(1)}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">Ore totali</p>
-            </CardContent>
-          </Card>
-          <Card className="border-border/60">
-            <CardContent className="p-4 text-center">
-              <p className="font-heading text-xl font-bold sm:text-2xl">{new Set(works.map((w) => w.data)).size}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">Giorni lavorati</p>
-            </CardContent>
-          </Card>
-          <Card className="border-primary/25 bg-primary/5">
-            <CardContent className="p-4 text-center">
-              <p className="font-heading text-xl font-bold text-primary sm:text-2xl">{totaleImporto.toFixed(2)} €</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">Importo totale</p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
 
       <ConfirmActionDialog
         open={deleteTargetId != null}
