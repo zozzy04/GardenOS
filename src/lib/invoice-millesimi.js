@@ -1,22 +1,16 @@
 /**
  * Calcolo divisione millesimi e totali fattura (condiviso tra Invoice admin e Mio conto).
- * Stessi valori legacy di Invoice.jsx prima della migrazione su tabella `famiglie`.
+ * L'unica fonte delle famiglie è la tabella `famiglie` su Supabase: nessun valore
+ * di riserva nel codice, così una fattura non può essere emessa su quote inventate.
  */
-
-export const LEGACY_FAMIGLIE = [
-  { nome: 'Famiglia A', millesimi: 201.055, ordine: 1 },
-  { nome: 'Famiglia B', millesimi: 304.419, ordine: 2 },
-  { nome: 'Famiglia C', millesimi: 290.081, ordine: 3 },
-  { nome: 'Famiglia D', millesimi: 204.445, ordine: 4 },
-]
 
 /**
  * @param {{ nome: string, millesimi: number, ordine?: number }[]} rows
- * @returns {{ nome: string, millesimi: number }[]}
+ * @returns {{ nome: string, millesimi: number }[]} vuoto se non ci sono righe valide
  */
 export function normalizeFamiglieRows(rows) {
   if (!rows || rows.length === 0) {
-    return LEGACY_FAMIGLIE.map(({ nome, millesimi }) => ({ nome, millesimi }))
+    return []
   }
   const sorted = [...rows].sort(
     (a, b) => (a.ordine ?? 0) - (b.ordine ?? 0) || a.nome.localeCompare(b.nome)
@@ -50,8 +44,15 @@ export function buildInvoiceData(worksList, speseList, famiglieOrdered, dateRang
   const totaleOre = wl.reduce((sum, w) => sum + (parseFloat(w.durata) || 0), 0)
 
   const famiglie = normalizeFamiglieRows(famiglieOrdered)
-  const divisioneMillesimi = {}
   const totaleMillesimi = famiglie.reduce((sum, f) => sum + f.millesimi, 0)
+
+  // Senza famiglie (o con millesimi a zero) la divisione non è calcolabile.
+  // Meglio nessuna fattura che una fattura con quote sbagliate.
+  if (totaleMillesimi <= 0) {
+    return null
+  }
+
+  const divisioneMillesimi = {}
 
   const importiCalcolati = famiglie.map(({ nome, millesimi }) => {
     const percentuale = millesimi / totaleMillesimi

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import {
+  AlertCircleIcon,
   DownloadIcon,
   FileTextIcon,
   GaugeIcon,
@@ -10,7 +11,7 @@ import {
 import { useAuth } from '../hooks/useSupabase'
 import { useLavori, useSpese, useFatture } from '../hooks/useSupabase'
 import { supabase } from '../config/supabase'
-import { buildInvoiceData, LEGACY_FAMIGLIE } from '@/lib/invoice-millesimi'
+import { buildInvoiceData } from '@/lib/invoice-millesimi'
 import { exportInvoiceToPdf, formatInvoiceDate } from '@/lib/invoice-pdf'
 import { Button } from '@/components/ui/button'
 import {
@@ -23,6 +24,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
   Table,
   TableBody,
@@ -40,7 +42,8 @@ const Invoice = () => {
   const { lavori } = useLavori(user?.id)
   const { spese } = useSpese(user?.id)
   const { fatture, createFattura, deleteFattura, getLastFatturaPeriodEnd } = useFatture()
-  const [famiglieRows, setFamiglieRows] = useState(LEGACY_FAMIGLIE)
+  const [famiglieRows, setFamiglieRows] = useState([])
+  const [famiglieError, setFamiglieError] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [filteredWorks, setFilteredWorks] = useState([])
@@ -56,7 +59,15 @@ const Invoice = () => {
         .from('famiglie')
         .select('id, nome, millesimi, ordine')
         .order('ordine', { ascending: true })
-      if (cancelled || e || !data?.length) return
+      if (cancelled) return
+      if (e || !data?.length) {
+        setFamiglieRows([])
+        setFamiglieError(
+          'Impossibile caricare le famiglie da Supabase: senza millesimi la fattura non può essere calcolata. Controlla la tabella `famiglie` e le relative policy RLS.'
+        )
+        return
+      }
+      setFamiglieError('')
       setFamiglieRows(data)
     })()
     return () => { cancelled = true }
@@ -212,6 +223,14 @@ const Invoice = () => {
         description="Seleziona il periodo ed emetti la fattura — i costi extra si aggiungono dal registro lavori"
         icon={<FileTextIcon className="size-7 text-primary" />}
       />
+
+      {famiglieError && (
+        <Alert variant="destructive">
+          <AlertCircleIcon />
+          <AlertTitle>Millesimi non disponibili</AlertTitle>
+          <AlertDescription>{famiglieError}</AlertDescription>
+        </Alert>
+      )}
 
       {/* Periodo */}
       <Card>

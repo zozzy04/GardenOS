@@ -11,7 +11,7 @@ import {
   Sunset,
   WindIcon,
 } from 'lucide-react'
-import { WEATHER_CONFIG } from '../config/weather'
+import { WEATHER_CONFIG, isWeatherConfigured } from '../config/weather'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -77,6 +77,14 @@ const WeatherStats = () => {
 
   const fetchWeather = async () => {
     if (!location.lat || !location.lon) return
+
+    if (!isWeatherConfigured) {
+      setError(
+        'Servizio meteo non configurato: manca la variabile VITE_OPENWEATHER_API_KEY. Impostala in .env (locale) e nelle variabili d\'ambiente del deploy.'
+      )
+      setLoading(false)
+      return
+    }
 
     setLoading(true)
     setError(null)

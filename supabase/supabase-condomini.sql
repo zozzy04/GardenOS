@@ -42,13 +42,16 @@ CREATE TABLE IF NOT EXISTS profiles (
 CREATE INDEX IF NOT EXISTS idx_profiles_role_status ON profiles (role, approval_status);
 CREATE INDEX IF NOT EXISTS idx_profiles_famiglia ON profiles (famiglia_id);
 
--- Seed famiglie (stessi millesimi di Invoice.jsx legacy)
+-- Seed famiglie — DATI DI ESEMPIO.
+-- Sostituisci nomi e millesimi con quelli reali del tuo condominio DOPO aver
+-- eseguito lo script, direttamente dal SQL Editor o dalla Table Editor di Supabase.
+-- Non committare mai nomi di persone reali: questo repository è pubblico.
 INSERT INTO famiglie (nome, millesimi, ordine)
 VALUES
-  ('Famiglia A', 201.055, 1),
-  ('Famiglia B', 304.419, 2),
-  ('Famiglia C', 290.081, 3),
-  ('Famiglia D', 204.445, 4)
+  ('Famiglia A', 250.000, 1),
+  ('Famiglia B', 250.000, 2),
+  ('Famiglia C', 250.000, 3),
+  ('Famiglia D', 250.000, 4)
 ON CONFLICT (nome) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
