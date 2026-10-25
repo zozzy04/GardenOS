@@ -12,13 +12,9 @@ import {
 import { useAuth } from '../hooks/useSupabase'
 import { useSpese } from '../hooks/useSupabase'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription } from '@/components/ui/card'
+import { ResponsiveFormSheet } from '@/components/responsive-form-sheet'
+import { formatEuro } from '@/lib/format'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -73,6 +69,30 @@ const SpeseCondominiali = () => {
   const [deleteTargetId, setDeleteTargetId] = useState(null)
   const fileInputRef = useRef(null)
 
+  // L'anteprima locale è un blob: senza revoca resta in memoria a ogni
+  // cambio file. Gli URL remoti degli scontrini già salvati non si toccano.
+  const revokePreview = (preview) => {
+    if (typeof preview === 'string' && preview.startsWith('blob:')) {
+      URL.revokeObjectURL(preview)
+    }
+  }
+
+  const clearForm = () => {
+    revokePreview(formData.scontrino_preview)
+    setFormData(emptyForm())
+    setEditingId(null)
+  }
+
+  const openNewForm = () => {
+    clearForm()
+    setShowForm(true)
+  }
+
+  const closeForm = () => {
+    clearForm()
+    setShowForm(false)
+  }
+
   const handleFileChange = (e) => {
     const file = e.target.files[0]
     if (!file) return
@@ -88,6 +108,7 @@ const SpeseCondominiali = () => {
       return
     }
 
+    revokePreview(formData.scontrino_preview)
     setFormData({
       ...formData,
       scontrino_file: file,
@@ -155,9 +176,7 @@ const SpeseCondominiali = () => {
         toastSuccess('Spesa aggiunta')
       }
 
-      setFormData(emptyForm())
-      setEditingId(null)
-      setShowForm(false)
+      closeForm()
     } catch (err) {
       console.error('Errore:', err)
       toastError('Si è verificato un errore. Riprova.')
@@ -168,6 +187,7 @@ const SpeseCondominiali = () => {
   }
 
   const handleEdit = (spesa) => {
+    revokePreview(formData.scontrino_preview)
     const dataParts = spesa.data_acquisto.split('/')
     const dataISO =
       dataParts.length === 3
@@ -189,13 +209,17 @@ const SpeseCondominiali = () => {
     })
     setEditingId(spesa.id)
     setShowForm(true)
-    setTimeout(() => {
-      document.getElementById('spese-form-anchor')?.scrollIntoView({ behavior: 'smooth' })
-    }, 100)
   }
 
-  const removeFile = () =>
-    setFormData({ ...formData, scontrino_file: null, scontrino_url: null, scontrino_preview: null })
+  const removeFile = () => {
+    revokePreview(formData.scontrino_preview)
+    setFormData({
+      ...formData,
+      scontrino_file: null,
+      scontrino_url: null,
+      scontrino_preview: null,
+    })
+  }
 
   const totaleSpese = spese.reduce((sum, s) => sum + (s.prezzo || 0), 0)
 
@@ -207,33 +231,59 @@ const SpeseCondominiali = () => {
           description="Registra spese e scontrini"
           icon={<ShoppingCartIcon className="size-6 text-primary" />}
         />
-        <Button
-          className="shrink-0"
-          variant={showForm ? 'secondary' : 'default'}
-          onClick={() => setShowForm(!showForm)}
-        >
-          {showForm ? (
-            <>
-              <XIcon />
-              Chiudi
-            </>
-          ) : (
-            <>
-              <PlusIcon />
-              Nuova spesa
-            </>
-          )}
+        <Button className="shrink-0" onClick={openNewForm}>
+          <PlusIcon />
+          Nuova spesa
         </Button>
       </PageToolbar>
 
-      {showForm && (
-        <Card id="spese-form-anchor">
-          <CardHeader>
-            <CardTitle>{editingId ? 'Modifica spesa' : 'Nuova spesa'}</CardTitle>
-            <CardDescription>Oggetto, data, importo e allegato opzionale</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+      {spese.length > 0 && (
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="p-4 text-center">
+              <p className="font-heading text-2xl font-bold text-primary">
+                {formatEuro(totaleSpese, { centesimi: true })}
+              </p>
+              <p className="text-xs text-muted-foreground">Totale spese</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="font-heading text-2xl font-bold">{spese.length}</p>
+              <p className="text-xs text-muted-foreground">Spese totali</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      <ResponsiveFormSheet
+        open={showForm}
+        onOpenChange={(open) => {
+          if (!open) closeForm()
+        }}
+        title={editingId ? 'Modifica spesa' : 'Nuova spesa'}
+        description="Oggetto, data, importo e allegato opzionale"
+        footer={
+          <>
+            <Button type="submit" form="spese-form" disabled={submitting || uploadingFile}>
+              {submitting || uploadingFile ? (
+                <>
+                  <Loader2Icon className="size-4 animate-spin" />
+                  {uploadingFile ? 'Caricamento file...' : 'Salvataggio...'}
+                </>
+              ) : editingId ? (
+                'Salva modifiche'
+              ) : (
+                'Aggiungi spesa'
+              )}
+            </Button>
+            <Button type="button" variant="outline" onClick={closeForm}>
+              Annulla
+            </Button>
+          </>
+        }
+      >
+        <form id="spese-form" onSubmit={handleSubmit} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2 sm:col-span-2">
                   <Label>Categoria *</Label>
@@ -346,35 +396,8 @@ const SpeseCondominiali = () => {
                   )}
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Button type="submit" disabled={submitting || uploadingFile}>
-                  {submitting || uploadingFile ? (
-                    <>
-                      <Loader2Icon className="size-4 animate-spin" />
-                      {uploadingFile ? 'Caricamento file...' : 'Salvataggio...'}
-                    </>
-                  ) : editingId ? (
-                    'Salva modifiche'
-                  ) : (
-                    'Aggiungi spesa'
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setShowForm(false)
-                    setEditingId(null)
-                    setFormData(emptyForm())
-                  }}
-                >
-                  Annulla
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+        </form>
+      </ResponsiveFormSheet>
 
       {error && (
         <Alert variant="destructive">
@@ -400,6 +423,56 @@ const SpeseCondominiali = () => {
               <p className="text-sm">Aggiungi la prima spesa condominiale.</p>
             </div>
           ) : (
+            <>
+            {/* Mobile: una card per spesa, niente scroll orizzontale */}
+            <ul className="divide-y divide-border md:hidden">
+              {spese.map((spesa) => (
+                <li key={spesa.id} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">{spesa.oggetto}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{spesa.data_acquisto}</p>
+                      {spesa.scontrino_url && (
+                        <a
+                          href={spesa.scontrino_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1.5 inline-flex items-center gap-1 text-xs text-primary underline underline-offset-2"
+                        >
+                          <FileIcon className="size-3.5" />
+                          Scontrino
+                        </a>
+                      )}
+                    </div>
+                    <p className="shrink-0 font-sans text-lg font-bold tabular-nums">
+                      {spesa.prezzo ? formatEuro(spesa.prezzo, { centesimi: true }) : '—'}
+                    </p>
+                  </div>
+                  <div className="mt-3 flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handleEdit(spesa)}
+                    >
+                      <PencilIcon /> Modifica
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-destructive hover:text-destructive"
+                      onClick={() => setDeleteTargetId(spesa.id)}
+                    >
+                      <Trash2Icon /> Elimina
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            <div className="hidden overflow-x-auto md:block">
             <Table className="min-w-[600px]">
               <TableHeader>
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -416,7 +489,7 @@ const SpeseCondominiali = () => {
                     <TableCell className="whitespace-normal pl-4">{spesa.oggetto}</TableCell>
                     <TableCell className="whitespace-nowrap">{spesa.data_acquisto}</TableCell>
                     <TableCell className="tabular-nums">
-                      {spesa.prezzo ? `${spesa.prezzo.toFixed(2)} €` : '-'}
+                      {spesa.prezzo ? formatEuro(spesa.prezzo, { centesimi: true }) : '—'}
                     </TableCell>
                     <TableCell className="whitespace-normal">
                       {spesa.scontrino_url ? (
@@ -459,28 +532,11 @@ const SpeseCondominiali = () => {
                 ))}
               </TableBody>
             </Table>
+            </div>
+            </>
           )}
         </CardContent>
       </Card>
-
-      {spese.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
-          <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="p-4 text-center">
-              <p className="font-heading text-2xl font-bold text-primary">
-                {totaleSpese.toFixed(2)} €
-              </p>
-              <p className="text-xs text-muted-foreground">Totale spese</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="font-heading text-2xl font-bold">{spese.length}</p>
-              <p className="text-xs text-muted-foreground">Spese totali</p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
 
       <ConfirmActionDialog
         open={deleteTargetId != null}
