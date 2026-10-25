@@ -103,6 +103,7 @@ export const useLavori = (userId, options = {}) => {
         importo: parseFloat(lavoro.importo),
         note: lavoro.note || '',
         extraVoci: lavoro.extra_voci || [],
+        fatturaId: lavoro.fattura_id ?? null,
       }))
       
       setLavori(formattedData)
@@ -336,7 +337,8 @@ export const useSpese = (userId, options = {}) => {
         oggetto: spesa.oggetto,
         data_acquisto: new Date(spesa.data_acquisto).toLocaleDateString('it-IT'),
         prezzo: parseFloat(spesa.prezzo),
-        scontrino_url: spesa.scontrino_url || null
+        scontrino_url: spesa.scontrino_url || null,
+        fatturaId: spesa.fattura_id ?? null,
       }))
       
       setSpese(formattedData)
@@ -550,19 +552,24 @@ export const useFatture = () => {
     }
   }
 
-  const createFattura = async (fatturaData) => {
+  /**
+   * Emette la fattura e marca lavori e spese come fatturati, in un'unica
+   * transazione lato database: se il client facesse le due cose in sequenza,
+   * un errore nel mezzo lascerebbe righe rifatturabili.
+   */
+  const emettiFattura = async (fatturaData, lavoriIds = [], speseIds = []) => {
     try {
       setError(null)
-      const { data, error: insertError } = await supabase
-        .from('fatture')
-        .insert(fatturaData)
-        .select()
-        .single()
-      if (insertError) throw insertError
+      const { data, error: rpcError } = await supabase.rpc('emetti_fattura', {
+        dati: fatturaData,
+        lavori_ids: lavoriIds,
+        spese_ids: speseIds,
+      })
+      if (rpcError) throw rpcError
       await loadFatture()
       return { data, error: null }
     } catch (err) {
-      console.error('Errore nella creazione fattura:', err)
+      console.error("Errore nell'emissione fattura:", err)
       setError(err.message)
       return { data: null, error: err }
     }
@@ -605,7 +612,7 @@ export const useFatture = () => {
     fatture,
     loading,
     error,
-    createFattura,
+    emettiFattura,
     deleteFattura,
     getLastFatturaPeriodEnd,
     refresh: loadFatture,

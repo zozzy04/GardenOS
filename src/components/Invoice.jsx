@@ -13,6 +13,7 @@ import { useLavori, useSpese, useFatture } from '../hooks/useSupabase'
 import { supabase } from '../config/supabase'
 import { buildInvoiceData } from '@/lib/invoice-millesimi'
 import { exportInvoiceToPdf, formatInvoiceDate } from '@/lib/invoice-pdf'
+import { formatEuro } from '@/lib/format'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -37,11 +38,17 @@ import { PageContainer, PageHeader } from '@/components/page-layout'
 import { ConfirmActionDialog } from '@/components/confirm-action-dialog'
 import { toastError, toastSuccess } from '@/lib/notify'
 
+/** `dd/mm/yyyy` -> `yyyy-mm-dd`, per confronti e ordinamenti fra stringhe. */
+function itToIso(dataIt) {
+  const [giorno, mese, anno] = String(dataIt || '').split('/')
+  return anno && mese && giorno ? `${anno}-${mese}-${giorno}` : ''
+}
+
 const Invoice = () => {
   const { user } = useAuth()
   const { lavori } = useLavori(user?.id)
   const { spese } = useSpese(user?.id)
-  const { fatture, createFattura, deleteFattura, getLastFatturaPeriodEnd } = useFatture()
+  const { fatture, emettiFattura, deleteFattura, getLastFatturaPeriodEnd } = useFatture()
   const [famiglieRows, setFamiglieRows] = useState([])
   const [famiglieError, setFamiglieError] = useState('')
   const [startDate, setStartDate] = useState('')
@@ -50,6 +57,8 @@ const Invoice = () => {
   const [filteredSpese, setFilteredSpese] = useState([])
   const [invoiceData, setInvoiceData] = useState(null)
   const [emitting, setEmitting] = useState(false)
+  const [confirmEmit, setConfirmEmit] = useState(false)
+  const [arretrati, setArretrati] = useState([])
   const [deleteTargetId, setDeleteTargetId] = useState(null)
 
   useEffect(() => {
@@ -98,31 +107,30 @@ const Invoice = () => {
   const computeInvoice = () => {
     if (!startDate || !endDate || !lavori || !spese) return
 
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-    end.setHours(23, 59, 59, 999)
+    /* Confronto fra stringhe ISO invece che fra Date: le date in arrivo sono
+       giorni, non istanti, e passare da Date introduce il fuso orario — con
+       end.setHours() in ora locale su una Date costruita in UTC il bordo del
+       periodo poteva spostarsi di un giorno. */
+    const inPeriodo = (iso) => iso >= startDate && iso <= endDate
+    const nonFatturato = (riga) => !riga.fatturaId
 
     const filtered = lavori
-      .filter((work) => {
-        const workDate = new Date(work.data.split('/').reverse().join('-'))
-        return workDate >= start && workDate <= end
-      })
-      .sort((a, b) => {
-        const dateA = new Date(a.data.split('/').reverse().join('-'))
-        const dateB = new Date(b.data.split('/').reverse().join('-'))
-        return dateA - dateB
-      })
+      .filter((work) => nonFatturato(work) && inPeriodo(itToIso(work.data)))
+      .sort((a, b) => itToIso(a.data).localeCompare(itToIso(b.data)))
 
     const filteredSpeseList = spese
-      .filter((spesa) => {
-        const spesaDate = new Date(spesa.data_acquisto.split('/').reverse().join('-'))
-        return spesaDate >= start && spesaDate <= end
-      })
-      .sort((a, b) => {
-        const dateA = new Date(a.data_acquisto.split('/').reverse().join('-'))
-        const dateB = new Date(b.data_acquisto.split('/').reverse().join('-'))
-        return dateA - dateB
-      })
+      .filter((spesa) => nonFatturato(spesa) && inPeriodo(itToIso(spesa.data_acquisto)))
+      .sort((a, b) => itToIso(a.data_acquisto).localeCompare(itToIso(b.data_acquisto)))
+
+    /* Righe mai fatturate e anteriori al periodo: prima passavano inosservate
+       perche' l'appartenenza si deduceva solo dalle date. */
+    const arretratiLavori = lavori.filter(
+      (w) => nonFatturato(w) && itToIso(w.data) < startDate
+    )
+    const arretratiSpese = spese.filter(
+      (s) => nonFatturato(s) && itToIso(s.data_acquisto) < startDate
+    )
+    setArretrati([...arretratiLavori, ...arretratiSpese])
 
     setFilteredWorks(filtered)
     setFilteredSpese(filteredSpeseList)
@@ -161,7 +169,7 @@ const Invoice = () => {
         .flatMap((w) => w.extraVoci || [])
         .filter((v) => v.prezzo > 0 && v.label)
 
-      const { error } = await createFattura({
+      const { error } = await emettiFattura({
         period_start: startDate,
         period_end: endDate,
         totale_lavori: invoiceData.totaleLavori,
@@ -186,8 +194,10 @@ const Invoice = () => {
           data_acquisto: s.data_acquisto,
           prezzo: s.prezzo,
         })),
-        created_by: user.id,
-      })
+      },
+      filteredWorks.map((w) => w.id),
+      filteredSpese.map((sp) => sp.id)
+      )
       if (error) {
         toastError('Errore nel salvataggio: ' + error.message)
         return
@@ -265,6 +275,20 @@ const Invoice = () => {
           </Button>
         </CardContent>
       </Card>
+
+      {arretrati.length > 0 && (
+        <Alert>
+          <AlertCircleIcon />
+          <AlertTitle>
+            {arretrati.length} {arretrati.length === 1 ? 'voce' : 'voci'} mai fatturate prima
+            del periodo
+          </AlertTitle>
+          <AlertDescription>
+            Sono anteriori alla data di inizio e non risultano in nessuna fattura. Sposta
+            indietro la data di inizio per includerle, oppure lasciale fuori di proposito.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {invoiceData && (
         <>
@@ -437,15 +461,20 @@ const Invoice = () => {
                           {data.millesimi.toFixed(3).replace('.', ',')}
                         </TableCell>
                         <TableCell className="pr-4 text-right tabular-nums">
-                          {data.importo.toFixed(0)} €
+                          {formatEuro(data.importo)}
                         </TableCell>
                       </TableRow>
                     ))}
                     <TableRow className="bg-muted/50 font-semibold hover:bg-muted/50">
                       <TableCell className="pl-4">Totale</TableCell>
-                      <TableCell>1000,000</TableCell>
+                      <TableCell className="tabular-nums">
+                        {Object.values(invoiceData.divisioneMillesimi)
+                          .reduce((acc, d) => acc + (d.millesimi || 0), 0)
+                          .toFixed(3)
+                          .replace('.', ',')}
+                      </TableCell>
                       <TableCell className="pr-4 text-right tabular-nums">
-                        {Math.round(invoiceData.totale).toFixed(0)} €
+                        {formatEuro(invoiceData.totale)}
                       </TableCell>
                     </TableRow>
                   </TableBody>
@@ -457,7 +486,7 @@ const Invoice = () => {
           {/* Azioni */}
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button
-              onClick={handleEmetti}
+              onClick={() => setConfirmEmit(true)}
               size="lg"
               disabled={emitting}
               className="flex-1 sm:flex-none"
@@ -512,7 +541,8 @@ const Invoice = () => {
               <Table className="min-w-[480px]">
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
-                    <TableHead className="pl-4 font-semibold">Periodo</TableHead>
+                    <TableHead className="pl-4 font-semibold">N.</TableHead>
+                    <TableHead className="font-semibold">Periodo</TableHead>
                     <TableHead className="font-semibold">Totale</TableHead>
                     <TableHead className="font-semibold">Emessa il</TableHead>
                     <TableHead className="pr-4 text-right font-semibold">Azioni</TableHead>
@@ -521,11 +551,14 @@ const Invoice = () => {
                 <TableBody>
                   {fatture.map((f) => (
                     <TableRow key={f.id}>
-                      <TableCell className="whitespace-nowrap pl-4">
+                      <TableCell className="pl-4 font-semibold tabular-nums">
+                        {f.numero ?? '—'}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
                         {formatInvoiceDate(f.period_start)} – {formatInvoiceDate(f.period_end)}
                       </TableCell>
                       <TableCell className="tabular-nums font-medium">
-                        {parseFloat(f.totale).toFixed(2)} €
+                        {formatEuro(f.totale, { centesimi: true })}
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-muted-foreground">
                         {new Date(f.created_at).toLocaleDateString('it-IT')}
@@ -549,6 +582,27 @@ const Invoice = () => {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmActionDialog
+        open={confirmEmit}
+        onOpenChange={setConfirmEmit}
+        destructive={false}
+        title="Emettere questa fattura?"
+        description={
+          invoiceData
+            ? `Periodo ${formatInvoiceDate(startDate)} – ${formatInvoiceDate(endDate)}: ` +
+              `${filteredWorks.length} lavori e ${filteredSpese.length} spese, ` +
+              `totale ${formatEuro(invoiceData.totale)}. Diventerà visibile ai condòmini e ` +
+              `le voci incluse non potranno più rientrare in un'altra fattura.`
+            : ''
+        }
+        confirmLabel="Emetti"
+        cancelLabel="Annulla"
+        onConfirm={async () => {
+          await handleEmetti()
+          return true
+        }}
+      />
 
       <ConfirmActionDialog
         open={deleteTargetId != null}
