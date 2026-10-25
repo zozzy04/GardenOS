@@ -2,12 +2,33 @@
 <html lang="it" suppressHydrationWarning>
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <title>GardenOS - Gestione Giardino</title>
+    <meta
+      name="description"
+      content="Registro lavori, spese e rendiconti del giardino condominiale."
+    />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Il colore segue lo sfondo della pagina: in alto allo schermo non si
+         vede lo stacco fra barra di sistema e contenuto. Il verde del brand
+         resta nel manifest, dove colora il commutatore di app su Android. -->
+    <meta name="theme-color" content="#f6f9f7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#030c07" media="(prefers-color-scheme: dark)" />
+
+    <!-- iOS non legge il manifest: nome, modalita' e barra di stato vanno
+         dichiarati qui. black-translucent lascia passare il contenuto sotto
+         la barra, ed e' il motivo per cui serve viewport-fit=cover sopra
+         insieme ai padding env(safe-area-inset-*) nei componenti. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="GardenOS" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   </head>
   <body>
     <div id="root"></div>
