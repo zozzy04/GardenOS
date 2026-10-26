@@ -1,4 +1,10 @@
-import { DownloadIcon, SmartphoneIcon } from 'lucide-react'
+import * as React from 'react'
+import {
+  CheckCircle2Icon,
+  DownloadIcon,
+  ShareIcon,
+  SmartphoneIcon,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -9,6 +15,7 @@ import {
 } from '@/components/ui/card'
 import { PageContainer, PageHeader } from '@/components/page-layout'
 import { toastError, toastSuccess } from '@/lib/notify'
+import { isIOS, useInstallPrompt } from '@/hooks/use-install-prompt'
 
 const IOS_STEPS = [
   {
@@ -41,28 +48,23 @@ const IOS_STEPS = [
 const ANDROID_STEPS = [
   {
     n: 1,
-    title: 'Apri Chrome',
-    text: 'Assicurati di usare Google Chrome. Vai all\'indirizzo dell\'app.',
+    title: 'Usa il pulsante «Installa» qui sopra',
+    text: 'Se compare, è la strada più breve: un tocco e l\'app viene installata. Gli altri passaggi servono solo se il pulsante non c\'è.',
   },
   {
     n: 2,
-    title: 'Tocca il menu (⋮)',
-    text: 'In alto a destra trovi tre puntini verticali. Toccali per aprire il menu.',
+    title: 'Altrimenti apri il menu di Chrome (⋮)',
+    text: 'Tre puntini verticali in alto a destra.',
   },
   {
     n: 3,
-    title: 'Tocca "Aggiungi a schermata Home"',
-    text: 'Nel menu trovi l\'opzione "Aggiungi a schermata Home" oppure "Installa app". Toccala.',
+    title: 'Tocca «Installa app»',
+    text: 'In alcune versioni si chiama «Aggiungi a schermata Home».',
   },
   {
     n: 4,
-    title: 'Conferma il nome e tocca "Aggiungi"',
-    text: 'Puoi modificare il nome (es. "GardenOS"). Poi tocca "Aggiungi" o "Installa" per confermare.',
-  },
-  {
-    n: 5,
-    title: 'Apri l\'app dalla schermata Home',
-    text: 'Troverai l\'icona nella schermata Home o nel cassetto delle app. Si apre a schermo intero.',
+    title: 'Conferma',
+    text: 'Puoi cambiare il nome prima di confermare.',
   },
 ]
 
@@ -75,9 +77,9 @@ async function generatePdf() {
     let y = 20
 
     // Header
-    doc.setFillColor(37, 99, 235)
+    doc.setFillColor(22, 163, 74)
     doc.rect(margin, 10, pageWidth - margin * 2, 28, 'F')
-    doc.setFillColor(29, 78, 216)
+    doc.setFillColor(21, 128, 61)
     doc.rect(margin, 10, pageWidth - margin * 2, 2.5, 'F')
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(18)
@@ -130,7 +132,7 @@ async function generatePdf() {
       y += 6
     }
 
-    renderSteps(IOS_STEPS, 'iPhone — Safari / iOS', [37, 99, 235])
+    renderSteps(IOS_STEPS, 'iPhone — Safari / iOS', [21, 128, 61])
     renderSteps(ANDROID_STEPS, 'Android — Google Chrome', [22, 163, 74])
 
     // Note finali
@@ -182,54 +184,108 @@ function StepCard({ step }) {
   )
 }
 
-const PwaGuide = () => (
-  <PageContainer className="max-w-3xl">
-    <PageHeader
-      title="Installa l'app"
-      description="Aggiungi GardenOS alla schermata Home del tuo dispositivo per aprirla come un'app nativa."
-      icon={<SmartphoneIcon className="size-7 text-primary" />}
-    />
+const SCHEDE = {
+  ios: { titolo: 'iPhone — Safari', sottotitolo: 'iOS 14 o superiore', passi: IOS_STEPS },
+  android: { titolo: 'Android — Chrome', sottotitolo: 'Android 8 o superiore', passi: ANDROID_STEPS },
+}
 
-    <div className="grid gap-5 sm:grid-cols-2">
-      {/* iPhone */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">iPhone — Safari</CardTitle>
-          <CardDescription>iOS 14 o superiore</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {IOS_STEPS.map((step) => (
-            <StepCard key={step.n} step={step} />
-          ))}
+const PwaGuide = () => {
+  const { puoInstallare, installata, installa } = useInstallPrompt()
+  const suIOS = React.useMemo(() => isIOS(), [])
+
+  const handleInstalla = async () => {
+    const esito = await installa()
+    if (esito === 'accepted') toastSuccess('GardenOS installata')
+  }
+
+  // Prima la piattaforma su cui si trova chi legge
+  const ordine = suIOS ? ['ios', 'android'] : ['android', 'ios']
+
+  return (
+    <PageContainer className="max-w-3xl">
+      <PageHeader
+        title="Installa l'app"
+        description="Aggiungi GardenOS alla schermata Home per aprirla come un'app, a schermo intero."
+        icon={<SmartphoneIcon className="size-7 text-primary" />}
+      />
+
+      {installata && (
+        <Card className="border-success/40 bg-success/5">
+          <CardContent className="flex items-start gap-3 py-5">
+            <CheckCircle2Icon className="mt-0.5 size-6 shrink-0 text-success" />
+            <div>
+              <p className="font-medium">GardenOS è già installata</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                La stai usando come app. I passaggi qui sotto servono per aggiungerla
+                su un altro dispositivo.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!installata && puoInstallare && (
+        <Card className="border-primary/40 bg-primary/5">
+          <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="font-medium">Il tuo browser può installarla da qui</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                Un tocco e GardenOS finisce fra le tue app. Niente store, niente download.
+              </p>
+            </div>
+            <Button size="lg" onClick={handleInstalla} className="shrink-0">
+              <SmartphoneIcon />
+              Installa GardenOS
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {!installata && !puoInstallare && suIOS && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="flex items-start gap-3 py-4 text-sm">
+            <ShareIcon className="mt-0.5 size-5 shrink-0 text-primary" />
+            <p>
+              Su iPhone l&apos;installazione passa dal menu Condividi di Safari: Apple non
+              consente ai siti di installarsi da soli. Bastano i passaggi qui sotto.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        {ordine.map((chiave) => {
+          const scheda = SCHEDE[chiave]
+          return (
+            <Card key={chiave}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">{scheda.titolo}</CardTitle>
+                <CardDescription>{scheda.sottotitolo}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {scheda.passi.map((step) => (
+                  <StepCard key={step.n} step={step} />
+                ))}
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+
+      <Card className="border-primary/30 bg-primary/5">
+        <CardContent className="py-4 text-sm text-foreground">
+          <strong>Dopo l&apos;installazione:</strong> l&apos;app si apre a schermo intero senza
+          la barra del browser e continua a funzionare anche senza rete, mostrando gli ultimi
+          dati scaricati. Gli aggiornamenti arrivano da soli alla riapertura.
         </CardContent>
       </Card>
 
-      {/* Android */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Android — Chrome</CardTitle>
-          <CardDescription>Android 8 o superiore</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {ANDROID_STEPS.map((step) => (
-            <StepCard key={step.n} step={step} />
-          ))}
-        </CardContent>
-      </Card>
-    </div>
-
-    <Card className="border-primary/30 bg-primary/5">
-      <CardContent className="py-4 text-sm text-foreground">
-        <strong>Dopo l&apos;installazione:</strong> l&apos;app si apre a schermo intero senza la
-        barra del browser, come qualsiasi altra app. Non richiede download dallo store.
-      </CardContent>
-    </Card>
-
-    <Button onClick={generatePdf} size="lg" variant="outline" className="w-full sm:w-auto">
-      <DownloadIcon />
-      Scarica guida PDF
-    </Button>
-  </PageContainer>
-)
+      <Button onClick={generatePdf} size="lg" variant="outline" className="w-full sm:w-auto">
+        <DownloadIcon />
+        Scarica guida PDF
+      </Button>
+    </PageContainer>
+  )
+}
 
 export default PwaGuide
