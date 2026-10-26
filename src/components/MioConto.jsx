@@ -8,8 +8,8 @@ import {
   WalletIcon,
 } from 'lucide-react'
 import { useFatture, usePagamenti } from '../hooks/useSupabase'
-import { exportInvoiceToPdf, formatInvoiceDate } from '@/lib/invoice-pdf'
-import { formatEuro } from '@/lib/format'
+import { exportInvoiceToPdf } from '@/lib/invoice-pdf'
+import { formatDataIt, formatEuro } from '@/lib/format'
 import { AccountBalanceHero } from '@/components/account-balance-hero'
 import { PaymentStatusBadge } from '@/components/payment-status-badge'
 import { Button } from '@/components/ui/button'
@@ -135,7 +135,7 @@ const MioConto = ({ highlightFamigliaNome = null }) => {
           quoteAperte={saldo.quoteAperte}
           totaleVersato={saldo.totaleVersato}
           fattureTotali={fatture.length}
-          ultimoPeriodo={formatInvoiceDate(fatture[0]?.period_end || '')}
+          ultimoPeriodo={formatDataIt(fatture[0]?.period_end || '')}
           onScaricaUltima={() => handleDownloadPdf(fatture[0])}
         />
       )}
@@ -160,13 +160,13 @@ const MioConto = ({ highlightFamigliaNome = null }) => {
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-base font-semibold leading-tight">
-                        {formatInvoiceDate(fattura.period_start)} –{' '}
-                        {formatInvoiceDate(fattura.period_end)}
+                        {formatDataIt(fattura.period_start)} –{' '}
+                        {formatDataIt(fattura.period_end)}
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
                         {fattura.numero_lavori}{' '}
                         {fattura.numero_lavori === 1 ? 'lavoro' : 'lavori'} · Emessa il{' '}
-                        {new Date(fattura.created_at).toLocaleDateString('it-IT')}
+                        {formatDataIt(fattura.created_at)}
                       </p>
                     </div>
                     {miaQuota && <PaymentStatusBadge saldataIl={saldataIl} />}
@@ -246,7 +246,7 @@ const MioConto = ({ highlightFamigliaNome = null }) => {
                               className="rounded-lg border border-border bg-muted/30 p-3 sm:p-4"
                             >
                               <p className="text-xs font-semibold text-muted-foreground">
-                                {work.data}
+                                {formatDataIt(work.data)}
                               </p>
                               <div className="mt-1 flex flex-wrap gap-1">
                                 {(Array.isArray(work.tipi)
@@ -293,7 +293,7 @@ const MioConto = ({ highlightFamigliaNome = null }) => {
                               <div>
                                 <p className="text-sm">{spesa.oggetto}</p>
                                 <p className="text-xs text-muted-foreground">
-                                  {spesa.data_acquisto}
+                                  {formatDataIt(spesa.data_acquisto)}
                                 </p>
                               </div>
                               <span className="text-sm font-semibold">

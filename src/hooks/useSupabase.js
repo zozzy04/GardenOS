@@ -127,7 +127,7 @@ export const useLavori = (userId, options = {}) => {
       // Converti i dati dal formato DB al formato app
       const formattedData = data.map(lavoro => ({
         id: lavoro.id,
-        data: new Date(lavoro.data).toLocaleDateString('it-IT'),
+        data: lavoro.data,
         tipi: lavoro.tipi || [],
         descrizione: lavoro.descrizione,
         durata: lavoro.durata.toString(),
@@ -149,15 +149,11 @@ export const useLavori = (userId, options = {}) => {
   const createLavoro = async (lavoroData) => {
     try {
       setError(null)
-      // Converti data da formato italiano a ISO
-      const dataParts = lavoroData.data.split('/')
-      const dataISO = `${dataParts[2]}-${dataParts[1]}-${dataParts[0]}`
-
       const { data, error: insertError } = await supabase
         .from('lavori')
         .insert({
           user_id: userId,
-          data: dataISO,
+          data: lavoroData.data,
           tipi: lavoroData.tipi,
           descrizione: lavoroData.descrizione,
           durata: parseFloat(lavoroData.durata),
@@ -182,14 +178,10 @@ export const useLavori = (userId, options = {}) => {
   const updateLavoro = async (id, lavoroData) => {
     try {
       setError(null)
-      // Converti data da formato italiano a ISO
-      const dataParts = lavoroData.data.split('/')
-      const dataISO = `${dataParts[2]}-${dataParts[1]}-${dataParts[0]}`
-
       const { data, error: updateError } = await supabase
         .from('lavori')
         .update({
-          data: dataISO,
+          data: lavoroData.data,
           tipi: lavoroData.tipi,
           descrizione: lavoroData.descrizione,
           durata: parseFloat(lavoroData.durata),
@@ -366,7 +358,7 @@ export const useSpese = (userId, options = {}) => {
       const formattedData = data.map(spesa => ({
         id: spesa.id,
         oggetto: spesa.oggetto,
-        data_acquisto: new Date(spesa.data_acquisto).toLocaleDateString('it-IT'),
+        data_acquisto: spesa.data_acquisto,
         prezzo: parseFloat(spesa.prezzo),
         scontrinoPath: spesa.scontrino_path || null,
         fatturaId: spesa.fattura_id ?? null,
@@ -384,16 +376,12 @@ export const useSpese = (userId, options = {}) => {
   const createSpesa = async (spesaData) => {
     try {
       setError(null)
-      // Converti data da formato italiano a ISO
-      const dataParts = spesaData.data_acquisto.split('/')
-      const dataISO = `${dataParts[2]}-${dataParts[1]}-${dataParts[0]}`
-
       const { data, error: insertError } = await supabase
         .from('spese_condominiali')
         .insert({
           user_id: userId,
           oggetto: spesaData.oggetto,
-          data_acquisto: dataISO,
+          data_acquisto: spesaData.data_acquisto,
           prezzo: parseFloat(spesaData.prezzo),
           scontrino_path: spesaData.scontrino_path || null
         })
@@ -414,15 +402,11 @@ export const useSpese = (userId, options = {}) => {
   const updateSpesa = async (id, spesaData) => {
     try {
       setError(null)
-      // Converti data da formato italiano a ISO
-      const dataParts = spesaData.data_acquisto.split('/')
-      const dataISO = `${dataParts[2]}-${dataParts[1]}-${dataParts[0]}`
-
       const { data, error: updateError } = await supabase
         .from('spese_condominiali')
         .update({
           oggetto: spesaData.oggetto,
-          data_acquisto: dataISO,
+          data_acquisto: spesaData.data_acquisto,
           prezzo: parseFloat(spesaData.prezzo),
           scontrino_path: spesaData.scontrino_path || null
         })

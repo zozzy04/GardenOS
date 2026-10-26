@@ -1,13 +1,6 @@
 import { toastError, toastSuccess } from '@/lib/notify'
+import { formatDataIt } from '@/lib/format'
 
-export function formatInvoiceDate(dateString) {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('it-IT', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
-}
 
 /**
  * @param {object} params
@@ -58,7 +51,7 @@ export async function exportInvoiceToPdf({
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(255, 255, 255, 0.9)
     doc.text(
-      `Periodo: ${formatInvoiceDate(invoiceData.dateRange.start)} - ${formatInvoiceDate(invoiceData.dateRange.end)}`,
+      `Periodo: ${formatDataIt(invoiceData.dateRange.start)} - ${formatDataIt(invoiceData.dateRange.end)}`,
       pageWidth / 2,
       33,
       { align: 'center' }
@@ -151,7 +144,7 @@ export async function exportInvoiceToPdf({
         doc.text('Data:', margin + 5, currentY)
         doc.setFont('helvetica', 'normal')
         doc.setTextColor(0, 0, 0)
-        doc.text(String(work.data || ''), margin + 20, currentY)
+        doc.text(formatDataIt(work.data), margin + 20, currentY)
 
         const tipi = Array.isArray(work.tipi) ? work.tipi.join(', ') : work.tipo || '-'
         const tipiText = tipi.length > 50 ? tipi.substring(0, 47) + '...' : tipi
@@ -276,7 +269,7 @@ export async function exportInvoiceToPdf({
         doc.text('Data:', margin + 5, currentY)
         doc.setFont('helvetica', 'normal')
         doc.setTextColor(0, 0, 0)
-        doc.text(String(spesa.data_acquisto || ''), margin + 20, currentY)
+        doc.text(formatDataIt(spesa.data_acquisto), margin + 20, currentY)
 
         doc.setFont('helvetica', 'bold')
         doc.setTextColor(168, 85, 247)
@@ -538,7 +531,7 @@ export async function exportInvoiceToPdf({
       })
     }
 
-    const fileName = `${fileNamePrefix}-${formatInvoiceDate(invoiceData.dateRange.start).replace(/\//g, '-')}-${formatInvoiceDate(invoiceData.dateRange.end).replace(/\//g, '-')}.pdf`
+    const fileName = `${fileNamePrefix}-${formatDataIt(invoiceData.dateRange.start).replace(/\//g, '-')}-${formatDataIt(invoiceData.dateRange.end).replace(/\//g, '-')}.pdf`
     doc.save(fileName)
     toastSuccess('PDF scaricato')
   } catch (error) {

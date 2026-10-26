@@ -14,7 +14,7 @@ import { useSpese } from '../hooks/useSupabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription } from '@/components/ui/card'
 import { ResponsiveFormSheet } from '@/components/responsive-form-sheet'
-import { formatEuro } from '@/lib/format'
+import { formatDataIt, formatEuro, toIsoDate } from '@/lib/format'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -50,7 +50,7 @@ const SPESE_CATEGORIE = [
 const emptyForm = () => ({
   oggettoCategoria: '',
   oggettoCustom: '',
-  data_acquisto: new Date().toISOString().split('T')[0],
+  data_acquisto: toIsoDate(),
   prezzo: '',
   scontrino_file: null,
   scontrino_path: null,
@@ -151,7 +151,7 @@ const SpeseCondominiali = () => {
 
       const spesaData = {
         oggetto: oggettoFinal,
-        data_acquisto: new Date(formData.data_acquisto).toLocaleDateString('it-IT'),
+        data_acquisto: formData.data_acquisto,
         prezzo: formData.prezzo,
         scontrino_path: scontrinoPath,
       }
@@ -188,19 +188,13 @@ const SpeseCondominiali = () => {
 
   const handleEdit = (spesa) => {
     revokePreview(formData.scontrino_preview)
-    const dataParts = spesa.data_acquisto.split('/')
-    const dataISO =
-      dataParts.length === 3
-        ? `${dataParts[2]}-${dataParts[1]}-${dataParts[0]}`
-        : new Date().toISOString().split('T')[0]
-
     const isKnownCategory = SPESE_CATEGORIE.includes(spesa.oggetto)
     const isImmagine = !!spesa.scontrinoPath && /\.(jpg|jpeg|png|webp)$/i.test(spesa.scontrinoPath)
 
     setFormData({
       oggettoCategoria: isKnownCategory ? spesa.oggetto : 'Personalizzato',
       oggettoCustom: isKnownCategory ? '' : spesa.oggetto,
-      data_acquisto: dataISO,
+      data_acquisto: spesa.data_acquisto,
       prezzo: spesa.prezzo.toString(),
       scontrino_file: null,
       scontrino_path: spesa.scontrinoPath,
@@ -457,7 +451,9 @@ const SpeseCondominiali = () => {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium">{spesa.oggetto}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{spesa.data_acquisto}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {formatDataIt(spesa.data_acquisto)}
+                      </p>
                       {spesa.scontrinoPath && (
                         <button
                           type="button"
@@ -512,7 +508,9 @@ const SpeseCondominiali = () => {
                 {spese.map((spesa) => (
                   <TableRow key={spesa.id}>
                     <TableCell className="whitespace-normal pl-4">{spesa.oggetto}</TableCell>
-                    <TableCell className="whitespace-nowrap">{spesa.data_acquisto}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatDataIt(spesa.data_acquisto)}
+                    </TableCell>
                     <TableCell className="tabular-nums">
                       {spesa.prezzo ? formatEuro(spesa.prezzo, { centesimi: true }) : '—'}
                     </TableCell>

@@ -15,7 +15,7 @@ import { useLavori } from '../hooks/useSupabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { ResponsiveFormSheet } from '@/components/responsive-form-sheet'
-import { formatEuro } from '@/lib/format'
+import { formatDataIt, formatEuro, toIsoDate } from '@/lib/format'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -63,7 +63,7 @@ const WorkLog = () => {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [formData, setFormData] = useState({
-    data: new Date().toISOString().split('T')[0],
+    data: toIsoDate(),
     tipi: [],
     descrizione: '',
     durata: '0.5',
@@ -108,7 +108,7 @@ const WorkLog = () => {
 
   const clearForm = () => {
     setFormData({
-      data: new Date().toISOString().split('T')[0],
+      data: toIsoDate(),
       tipi: [],
       descrizione: '',
       durata: '0.5',
@@ -143,7 +143,7 @@ const WorkLog = () => {
     const importo = calculateImporto(formData.tipi, formData.durata)
 
     const workData = {
-      data: new Date(formData.data).toLocaleDateString('it-IT'),
+      data: formData.data,
       tipi: formData.tipi,
       descrizione: formData.descrizione,
       durata: formData.durata,
@@ -180,13 +180,9 @@ const WorkLog = () => {
 
   const handleEdit = (work) => {
     const tipi = Array.isArray(work.tipi) ? work.tipi : work.tipo ? [work.tipo] : []
-    const dataParts = work.data.split('/')
-    const dataISO = dataParts.length === 3
-      ? `${dataParts[2]}-${dataParts[1]}-${dataParts[0]}`
-      : new Date().toISOString().split('T')[0]
 
     setFormData({
-      data: dataISO,
+      data: work.data,
       tipi,
       descrizione: work.descrizione,
       durata: work.durata || '0.5',
@@ -223,13 +219,13 @@ const WorkLog = () => {
     const rows = works.map((w) => {
       const tipi = Array.isArray(w.tipi) ? w.tipi.join(' + ') : w.tipo || ''
       const extraTot = (w.extraVoci || []).reduce((s, v) => s + (v.prezzo || 0), 0)
-      return [w.data, tipi, w.descrizione, w.durata || '0', w.importo ? `${w.importo.toFixed(2)}` : '0', extraTot.toFixed(2), w.note || '']
+      return [formatDataIt(w.data), tipi, w.descrizione, w.durata || '0', w.importo ? `${w.importo.toFixed(2)}` : '0', extraTot.toFixed(2), w.note || '']
     })
     const csv = [headers, ...rows].map((row) => row.map((cell) => `"${cell}"`).join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `gardenos-lavori-${new Date().toISOString().split('T')[0]}.csv`
+    link.download = `gardenos-lavori-${toIsoDate()}.csv`
     link.click()
   }
 
@@ -540,7 +536,7 @@ const WorkLog = () => {
                         </div>
                         <p className="mt-1.5 text-sm font-medium">{work.descrizione}</p>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          {work.data} · {work.durata || '0'} h
+                          {formatDataIt(work.data)} · {work.durata || '0'} h
                         </p>
                       </div>
                       <div className="shrink-0 text-right">
@@ -621,7 +617,9 @@ const WorkLog = () => {
                             </div>
                           )}
                         </TableCell>
-                        <TableCell className="align-top whitespace-nowrap text-sm">{work.data}</TableCell>
+                        <TableCell className="align-top whitespace-nowrap text-sm">
+                          {formatDataIt(work.data)}
+                        </TableCell>
                         <TableCell className="align-top text-sm">{work.durata || '0'}</TableCell>
                         <TableCell className="align-top text-right text-sm tabular-nums">
                           <div className="flex flex-col items-end">

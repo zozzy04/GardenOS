@@ -1,20 +1,9 @@
 import { useMemo } from 'react'
+import { toIsoDate } from '@/lib/format'
 import { useAuth } from '../hooks/useSupabase'
 import { useLavori } from '../hooks/useSupabase'
 import { DashboardSectionCards } from '@/components/dashboard-section-cards'
 import { DashboardAreaChart } from '@/components/dashboard-area-chart'
-
-function parseItDate(s) {
-  if (!s || typeof s !== 'string') return null
-  const parts = s.split('/')
-  if (parts.length !== 3) return null
-  const dd = Number(parts[0])
-  const mm = Number(parts[1])
-  const yyyy = Number(parts[2])
-  if (!yyyy || !mm || !dd) return null
-  const d = new Date(yyyy, mm - 1, dd)
-  return Number.isNaN(d.getTime()) ? null : d
-}
 
 function getGreeting() {
   const h = new Date().getHours()
@@ -46,14 +35,12 @@ const Dashboard = () => {
     for (let i = 89; i >= 0; i--) {
       const d = new Date(ref)
       d.setDate(d.getDate() - i)
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      const key = toIsoDate(d)
       map.set(key, { date: key, desktop: 0, mobile: 0 })
     }
     for (const work of lavori || []) {
-      const wd = parseItDate(work.data)
-      if (!wd) continue
-      const key = `${wd.getFullYear()}-${String(wd.getMonth() + 1).padStart(2, '0')}-${String(wd.getDate()).padStart(2, '0')}`
-      const row = map.get(key)
+      // work.data e' gia' nel formato della chiave: nessuna conversione
+      const row = map.get(work.data)
       if (row) {
         row.desktop += 1
         row.mobile += parseFloat(work.durata) || 0

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../hooks/useSupabase'
 import { useLavori } from '../hooks/useSupabase'
+import { formatDataIt, parseIsoDate, toIsoDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -42,8 +43,8 @@ const Calendar = () => {
         if (!worksByType[tipo]) {
           worksByType[tipo] = []
         }
-        const workDate = new Date(work.data.split('/').reverse().join('-'))
-        worksByType[tipo].push(workDate)
+        const workDate = parseIsoDate(work.data)
+        if (workDate) worksByType[tipo].push(workDate)
       })
     })
 
@@ -73,14 +74,14 @@ const Calendar = () => {
       nextDate.setDate(nextDate.getDate() + avgInterval)
 
       if (nextDate >= now) {
-        const key = nextDate.toISOString().split('T')[0]
+        const key = toIsoDate(nextDate)
         if (!predictionsMap[key]) {
           predictionsMap[key] = []
         }
         predictionsMap[key].push({
           tipo,
           avgInterval,
-          lastDate: lastDate.toLocaleDateString('it-IT'),
+          lastDate: toIsoDate(lastDate),
         })
       }
     })
@@ -116,17 +117,14 @@ const Calendar = () => {
 
   const getWorksForDate = (date) => {
     if (!date || !lavori) return []
-    const dateStr = date.toLocaleDateString('it-IT')
+    const dateStr = toIsoDate(date)
     return lavori.filter((work) => work.data === dateStr)
   }
 
   const getPredictionsForDate = (date) => {
     if (!date) return []
-    const dateStr = date.toISOString().split('T')[0]
-    const prediction = predictions.find((p) => {
-      const predDateStr = p.date.toISOString().split('T')[0]
-      return predDateStr === dateStr
-    })
+    const dateStr = toIsoDate(date)
+    const prediction = predictions.find((p) => toIsoDate(p.date) === dateStr)
     return prediction ? prediction.tipi : []
   }
 
@@ -266,7 +264,7 @@ const Calendar = () => {
                             key={idx}
                             variant="outline"
                             className="h-auto w-full max-w-full justify-start gap-0.5 truncate border-chart-4/50 bg-chart-4/20 px-1.5 py-0.5 text-2xs font-normal sm:text-xs"
-                            title={`Previsto: ${pred.tipo} (ultimo: ${pred.lastDate})`}
+                            title={`Previsto: ${pred.tipo} (ultimo: ${formatDataIt(pred.lastDate)})`}
                           >
                             <ClockIcon className="size-3 shrink-0" />
                             <span className="truncate">{pred.tipo}</span>
@@ -314,7 +312,7 @@ const Calendar = () => {
                 <div className="mt-2 space-y-1 text-xs text-muted-foreground">
                   {prediction.tipi.map((pred, pIdx) => (
                     <div key={pIdx}>
-                      Ultimo: {pred.lastDate} · Media: {pred.avgInterval} giorni
+                      Ultimo: {formatDataIt(pred.lastDate)} · Media: {pred.avgInterval} giorni
                     </div>
                   ))}
                 </div>

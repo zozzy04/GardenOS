@@ -12,8 +12,8 @@ import { useAuth } from '../hooks/useSupabase'
 import { useLavori, useSpese, useFatture } from '../hooks/useSupabase'
 import { supabase } from '../config/supabase'
 import { buildInvoiceData } from '@/lib/invoice-millesimi'
-import { exportInvoiceToPdf, formatInvoiceDate } from '@/lib/invoice-pdf'
-import { formatEuro } from '@/lib/format'
+import { exportInvoiceToPdf } from '@/lib/invoice-pdf'
+import { formatDataIt, formatEuro, toIsoDate } from '@/lib/format'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -37,12 +37,6 @@ import {
 import { PageContainer, PageHeader } from '@/components/page-layout'
 import { ConfirmActionDialog } from '@/components/confirm-action-dialog'
 import { toastError, toastSuccess } from '@/lib/notify'
-
-/** `dd/mm/yyyy` -> `yyyy-mm-dd`, per confronti e ordinamenti fra stringhe. */
-function itToIso(dataIt) {
-  const [giorno, mese, anno] = String(dataIt || '').split('/')
-  return anno && mese && giorno ? `${anno}-${mese}-${giorno}` : ''
-}
 
 const Invoice = () => {
   const { user } = useAuth()
@@ -87,12 +81,12 @@ const Invoice = () => {
     ;(async () => {
       const lastEnd = await getLastFatturaPeriodEnd()
       if (cancelled) return
-      const today = new Date().toISOString().split('T')[0]
+      const today = toIsoDate()
       setEndDate(today)
       if (lastEnd) {
         const next = new Date(lastEnd)
         next.setDate(next.getDate() + 1)
-        setStartDate(next.toISOString().split('T')[0])
+        setStartDate(toIsoDate(next))
       }
     })()
     return () => { cancelled = true }
@@ -107,28 +101,26 @@ const Invoice = () => {
   const computeInvoice = () => {
     if (!startDate || !endDate || !lavori || !spese) return
 
-    /* Confronto fra stringhe ISO invece che fra Date: le date in arrivo sono
-       giorni, non istanti, e passare da Date introduce il fuso orario — con
-       end.setHours() in ora locale su una Date costruita in UTC il bordo del
-       periodo poteva spostarsi di un giorno. */
+    /* Giorni confrontati come giorni: le date arrivano in ISO dal database e
+       restano ISO fino al render, quindi basta l'ordinamento lessicografico. */
     const inPeriodo = (iso) => iso >= startDate && iso <= endDate
     const nonFatturato = (riga) => !riga.fatturaId
 
     const filtered = lavori
-      .filter((work) => nonFatturato(work) && inPeriodo(itToIso(work.data)))
-      .sort((a, b) => itToIso(a.data).localeCompare(itToIso(b.data)))
+      .filter((work) => nonFatturato(work) && inPeriodo(work.data))
+      .sort((a, b) => a.data.localeCompare(b.data))
 
     const filteredSpeseList = spese
-      .filter((spesa) => nonFatturato(spesa) && inPeriodo(itToIso(spesa.data_acquisto)))
-      .sort((a, b) => itToIso(a.data_acquisto).localeCompare(itToIso(b.data_acquisto)))
+      .filter((spesa) => nonFatturato(spesa) && inPeriodo(spesa.data_acquisto))
+      .sort((a, b) => a.data_acquisto.localeCompare(b.data_acquisto))
 
     /* Righe mai fatturate e anteriori al periodo: prima passavano inosservate
        perche' l'appartenenza si deduceva solo dalle date. */
     const arretratiLavori = lavori.filter(
-      (w) => nonFatturato(w) && itToIso(w.data) < startDate
+      (w) => nonFatturato(w) && w.data < startDate
     )
     const arretratiSpese = spese.filter(
-      (s) => nonFatturato(s) && itToIso(s.data_acquisto) < startDate
+      (s) => nonFatturato(s) && s.data_acquisto < startDate
     )
     setArretrati([...arretratiLavori, ...arretratiSpese])
 
@@ -310,8 +302,8 @@ const Invoice = () => {
               <CardContent className="p-5 sm:p-6">
                 <p className="text-xs font-medium text-muted-foreground">Periodo</p>
                 <p className="mt-2 text-sm font-semibold">
-                  {formatInvoiceDate(invoiceData.dateRange.start)} –{' '}
-                  {formatInvoiceDate(invoiceData.dateRange.end)}
+                  {formatDataIt(invoiceData.dateRange.start)} –{' '}
+                  {formatDataIt(invoiceData.dateRange.end)}
                 </p>
               </CardContent>
             </Card>
@@ -370,7 +362,7 @@ const Invoice = () => {
                     className="rounded-xl border border-border bg-muted/40 p-4 sm:p-5"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-sm font-semibold">{work.data}</span>
+                      <span className="text-sm font-semibold">{formatDataIt(work.data)}</span>
                       <span className="font-semibold text-primary">
                         {work.importo ? `${work.importo.toFixed(2)} €` : '-'}
                       </span>
@@ -418,7 +410,7 @@ const Invoice = () => {
                     key={spesa.id}
                     className="rounded-xl border border-border bg-muted/40 p-4 sm:p-5"
                   >
-                    <div className="text-sm font-semibold">{spesa.data_acquisto}</div>
+                    <div className="text-sm font-semibold">{formatDataIt(spesa.data_acquisto)}</div>
                     <p className="mt-1">{spesa.oggetto}</p>
                     <p className="mt-2 font-semibold text-primary">
                       {spesa.prezzo ? `${spesa.prezzo.toFixed(2)} €` : '-'}
@@ -567,13 +559,13 @@ const Invoice = () => {
                         {f.numero ?? '—'}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
-                        {formatInvoiceDate(f.period_start)} – {formatInvoiceDate(f.period_end)}
+                        {formatDataIt(f.period_start)} – {formatDataIt(f.period_end)}
                       </TableCell>
                       <TableCell className="tabular-nums font-medium">
                         {formatEuro(f.totale, { centesimi: true })}
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-muted-foreground">
-                        {new Date(f.created_at).toLocaleDateString('it-IT')}
+                        {formatDataIt(f.created_at)}
                       </TableCell>
                       <TableCell className="pr-4 text-right">
                         <Button
@@ -602,7 +594,7 @@ const Invoice = () => {
         title="Emettere questa fattura?"
         description={
           invoiceData
-            ? `Periodo ${formatInvoiceDate(startDate)} – ${formatInvoiceDate(endDate)}: ` +
+            ? `Periodo ${formatDataIt(startDate)} – ${formatDataIt(endDate)}: ` +
               `${filteredWorks.length} lavori e ${filteredSpese.length} spese, ` +
               `totale ${formatEuro(invoiceData.totale)}. Diventerà visibile ai condòmini e ` +
               `le voci incluse non potranno più rientrare in un'altra fattura.`
